@@ -801,9 +801,9 @@ WT.show("Number of turrets", table_size(global.WT_turrets))
   ------------------------------------------------------------------------------------
   -- Make sure our recipe is enabled if it should be
   for f, force in pairs(game.forces) do
-    if force.technologies.turrets.researched then
-      force.technologies.turrets.researched = false
-      force.technologies.turrets.researched = true
+    if force.technologies["gun-turret"].researched then
+      force.technologies["gun-turret"].researched = false
+      force.technologies["gun-turret"].researched = true
       WT.dprint("Reset technology \"turrets\" for force %s.", { f })
     end
   end

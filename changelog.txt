@@ -193,7 +193,6 @@ Date: 2020-11-16
     - Added French locale. Thanks a lot to Fr_Dae for providing the translation!
 
 
-
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.3
 Date: 2020-11-22
@@ -210,6 +209,16 @@ Date: 2020-11-22
     - Removed some log spam. It really got excessive with mods that create lots of new unit types  ("Rampant", "Natural Evolution" etc.).
     - Using game.check_prototype_translations() helps during mod development, but doesn't make much sense in normal games (especially as it was run not only when a new game was started, but in responce to a number of events). Now, prototype translations will only be checked if debugging is turned on -- no log spam and no time wasted on running the check unless it may be actually useful.
 
+
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+Date: 2020-11-24
+  Uploaded by:
+    - Pi-C
+
+  Info:
+    - Update for Factorio 1.1.0
+
   TODO:
-    - Acid and fire dummies are attacked by PLD -- not sure yet what to do about it. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)
+    - Acid and fire dummies are attacked by PLD and spidertrons -- not sure yet what to do about it. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)
     - Must go over the Fluid recipes again.

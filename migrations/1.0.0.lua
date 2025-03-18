@@ -5,9 +5,10 @@ local WT = require('__WaterTurret__/common')("WaterTurret")
 --~ log("Global table before migration" .. serpent.block(global))
 
 -- Initialize global tables
-global.fires = {}
-global.fire_dummies = {}
-
+global = global or {}
+global.fires = global.fires or {}
+global.fire_dummies = global.fire_dummies or {}
+global.WT_turrets = global.WT_turrets or {}
 local dummies
 
 --~ WT.show("game.surfaces", game.surfaces)
