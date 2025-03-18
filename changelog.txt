@@ -1,17 +1,4 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.0.2
-Date: 2020-02-18
-  Uploaded by:
-    - Pi-C
-
-  Changes:
-    - Increased the damage modifier for steam from 5 to 20. (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
-
-    - The water turret doesn't stun enemies any longer, but slows them down to half their speed. (https://mods.factorio.com/mod/WaterTurret/discussion/5dd38c66e7fd8b000c138705)
-
-    - No longer damage due to friendly fire: the water turret won't damage your own stuff! (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
-
----------------------------------------------------------------------------------------------------
 Version: 0.0.1
 Date: 2019-08-10
   Uploaded by:
@@ -19,3 +6,103 @@ Date: 2019-08-10
 
   Info:
     - Initial Release
+
+---------------------------------------------------------------------------------------------------
+Version: 0.18.1
+Date: 2020-02-18
+  Uploaded by:
+    - Pi-C
+
+  Info:
+    - Update for Factorio 0.18
+
+  Changes:
+    - Changed versioning scheme -- it's better if the mod version reflects the Factorio version it's compatible with.
+
+    - Increased the damage modifier for steam from 5 to 20. (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
+
+    - The water turret doesn't stun enemies any longer, but slows them down to half their speed. (https://mods.factorio.com/mod/WaterTurret/discussion/5dd38c66e7fd8b000c138705)
+
+    - No longer damage due to friendly fire: the water turret won't damage your own stuff! (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.18.2
+Date: 2020-03-16
+  Uploaded by:
+    - Pi-C
+
+  Info:
+    - This is the first version of "Water Turrets" where the turrets are controlled per script. If you update from a previous version of this mod, all existing turrets will be registered so they can be checked and acted on in regular intervals. To distribute the load, the start tick for each turret will be randomly chosen during this process, spread over a period of 10 minutes. Turrets will auto-target enemies during that period, after those 10 minutes, the script will be in control of all turrets.
+
+    - The turrets will still auto-target enemies (including spawners/turrets), the script will just give it a nudge in the right direction in response to events or in regular intervals.
+
+    - Turrets loaded with water may attack seemingly empty patches on the ground where they've found fire a short time before. That's correct behaviour: You may see no flames there, but the ground is still hot! :-)
+
+  Features:
+    - Temperature matters: If steam is used, more damage will be done for hotter steam! Final damage will be multiplied with the factor "steam_temperature / 165", where 165 is the temperature of steam made in a vanilla boiler.
+
+    - Added start-up setting for steam damage modifier.
+
+    - Added start-up setting to make spawners and turrets (including worms and artillery turrets) immune to damage from steam and water.
+
+    - Added start-up setting to set the interval in which turrets are checked.
+
+    - Added start-up setting to set radius around targeted position in which fires are extinguished.
+
+    - In combat, water turrets are only useful against mobile units. Therefore, we check in regular intervals if the water turrets attack a spawner or a turret (worms are turrets, too!). If so, they stop their attack and look for mobile enemies (biters/spitters, but also other players and their vehicles of prototype "car" if they are not allies or of our own force.)
+
+    - If no enemies are in range, water turrets will extinguish fire in their vicinity if they are loaded with water. This will make it worthwhile to use water turrets with steam (for the higher damage) together with water-fed turrets (for fire protection).
+
+  Changes:
+    - Made recipe for water-turret compatible with normal/expensive mode (twice the amount of each ingredient will be used in expensive mode per default).
+    - Locked recipe for water-turret behind "turrets" technology.
+    - Reduced default value for steam damage modifier to 10. While water turrets did physical damage before, they now do water/steam damage. As biters/spitters have no resistances against these new damage types, they already will be hurt more by the turrets, so leaving the steam damage modifier at 20 makes the water turrets too strong for my taste.
+
+  Mod compatibility:
+    - Changed water-turret recipe if "Amator Phasma's Coal & Steam" is installed. The expensive recipe is not a just-double-amounts variation of the normal recipe. Thanks to SounLee  https://mods.factorio.com/mod/WaterTurret/discussion/5e5180a9461111000e83aa35
+
+    - If "Picker Dollies" is installed and a steam/water turret is moved, the area the turret can cover is recalculated.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.18.3
+Date: 2020-03-16
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Hopefully fixed a loop when turrets loaded with steam tried to extinguish fire.
+    - Fixed crash because of event filtering not working correctly: We still need to filter built/destroyed entities for those we want to act on *in* the functions, not only in the events calling them! (https://mods.factorio.com/mod/WaterTurret/discussion/5eb0587ed9aa04000c14c5ce)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.18.4
+Date: 2020-08-15
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed that targetting function never was called, so water turrets would never target fires. (https://mods.factorio.com/mod/WaterTurret/discussion/5ed169a82b642b000e80cf98)
+    - Fixed that steam temperature didn't affect the amount of damage. (https://mods.factorio.com/mod/WaterTurret/discussion/5ee1ed8d405586000b69a8c8)
+    - Fixed crash with script_raised_built event. (https://mods.factorio.com/mod/WaterTurret/discussion/5eea82f3d24d01000b6b84fa)
+    - Fixed that water turret recipe wasn't enabled when mod was loaded into an existing game where "Turrets" already have been researched.
+
+  Changes:
+    - Turrets will now only try to find a target if they have ammo. This should improve performance in some situations.
+
+  Locale:
+    - Added Russian localization. Thanks to TheLastEagle for providing the translations! :-)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.18.5
+Date: 2020-08-23
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed crash when trying to target fires. (https://mods.factorio.com/mod/WaterTurret/discussion/5f3fa2465ef5ed76f3a149b2)
+
+  TODO:
+    - Code clean-up:
+      - Event filtering is possible now for script_raised events as well
+      - Make fire dummy a simple-entity-with-force (Do we really need the dummy? Check fire prototype again!)
+      - Use target filtering in the turret prototypes instead of assigning targets per script!
+    - Could we get some options to tweak the turret ourselves according to our mod setup? Something like water pressure/speed, damage inflicted, max range, enemy slow-down factor, etc... (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)

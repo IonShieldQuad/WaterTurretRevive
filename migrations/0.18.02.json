@@ -1,0 +1,16 @@
+{
+  "entity":
+  [
+    ["water-turret", "WT-water-turret"]
+  ],
+
+  "recipe":
+  [
+    ["water-turret", "WT-water-turret"]
+  ],
+
+  "item":
+  [
+    ["water-turret", "WT-water-turret"]
+  ]
+}
