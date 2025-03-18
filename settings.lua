@@ -99,11 +99,26 @@ data:extend({
   },
   {   -- Damage modifier for fire-extinguisher fluids
     type = "int-setting",
-    name = "WT-extinguisher-damage-modifier",
+    name = "WT-extinguisher-fluid-damage-modifier",
     setting_type = "startup",
     default_value = 5,          -- About  80 ticks/fire dummy
     minimum_value = 2,          -- About 400 ticks/fire dummy (like water)
     maximum_value = 10,         -- About  40 ticks/fire dummy
+    --~ default_value = 15,          -- About  80 ticks/fire dummy
+    --~ minimum_value = 2,          -- About 400 ticks/fire dummy (like water)
+    --~ maximum_value = 50,         -- About  40 ticks/fire dummy
+    order = "WT-[damage]-a-[extinguisher-fluid]"
+  },
+  {   -- Damage modifier for fire-extinguisher turrets
+    type = "int-setting",
+    name = "WT-extinguisher-turret-damage-modifier",
+    setting_type = "startup",
+    default_value = 5,          -- About  80 ticks/fire dummy
+    minimum_value = 2,          -- About 400 ticks/fire dummy (like water)
+    maximum_value = 10,         -- About  40 ticks/fire dummy
+    --~ default_value = 15,          -- About  80 ticks/fire dummy
+    --~ minimum_value = 2,          -- About 400 ticks/fire dummy (like water)
+    --~ maximum_value = 50,         -- About  40 ticks/fire dummy
     order = "WT-[damage]-a-[extinguisher-fluid]"
   },
   {   -- Slowdown factor turrets
@@ -202,6 +217,23 @@ if mods["gvv"] then
       setting_type = "startup",
       default_value = false,
       order = "WT-[debugging]-[gvv]"
+    }
+  })
+end
+
+
+
+------------------------------------------------------------------------------------
+--                             Fire extinguisher fluid                            --
+------------------------------------------------------------------------------------
+if mods["Bio_Industries"] then
+  data:extend({
+    {   -- Replace coal with charcoal or add new recipe?
+      type = "bool-setting",
+      name = "WT-recipe-BI",
+      setting_type = "startup",
+      default_value = true,
+      order = "WT-[recipe]-[fluid]"
     }
   })
 end

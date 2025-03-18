@@ -1,8 +1,12 @@
 local WT = require('__WaterTurret__/common')("WaterTurret")
 local MOD_PIX = WT.mod_root .. "graphics/"
 
+local mod_name = "\"Hardened pipes\""
+WT.dprint("Checking for %s", {mod_name})
+
+
 ------------------------------------------------------------------------------------
---                   Compatibility with "Hardened Pipes"                      --
+--                   Compatibility with "Hardened pipes"                      --
 ------------------------------------------------------------------------------------
 if mods["hardened_pipes"] and WT.hardened_pipes then
 
@@ -122,7 +126,8 @@ if mods["hardened_pipes"] and WT.hardened_pipes then
   FE_recipe.result_count = nil
   data:extend({ FE_recipe })
   --~ WT.show("Recipe Fire extinguisher turret", data.raw.recipe[WT.extinguisher_turret_name])
-
+  WT.dprint("%s %s has been found. Added hardened pipes to recipe of %s!",
+            {mod_name, mods["hardened_pipes"], FE_recipe.name})
 
   ------------------------------------------------------------------------------------
   -- Replace animations for turret base
@@ -139,9 +144,9 @@ if mods["hardened_pipes"] and WT.hardened_pipes then
     if layer.hr_version then
         layer.hr_version.filename = MOD_PIX .. "hr-turret-base-pipes-" .. direction .. ".png"
     end
-        --~ color_layer(turret.base_picture[direction].layers,
-                  --~ "turret-base-" .. direction .. "-raw.png", tint)
   end
+  WT.dprint("%s %s has been found. Exchanged graphics of %s!",
+            {mod_name, mods["hardened_pipes"], WT.extinguisher_turret_name})
 
   ------------------------------------------------------------------------------------
   -- Add new prerequisite to technology
@@ -161,49 +166,57 @@ if mods["hardened_pipes"] and WT.hardened_pipes then
     --~ data.raw.technology["WT-fire-ex-turret"].prerequisites,
   --~ })
 
+  WT.dprint("%s %s has been found. Added hardened pipes to prerequisites of %s!",
+            {mod_name, mods["hardened_pipes"], tech.name})
 
   ------------------------------------------------------------------------------------
   -- As compensation for the later unlock, the turrets inherit all resistancies from
   -- hardened pipes. If they already are resistant against one of the damages, the
   -- resistancy values will get the values that mean more protection.
   local hp_resistances = data.raw.pipe["PCHP-hardened-pipe"].resistances
-  local turret_resistances = data.raw[WT.turret_type][WT.extinguisher_turret_name].resistances
-  turret_resistances = turret_resistances or {}
+  local turret_resistances
 
 
-  for hr, hp_resistance in pairs(hp_resistances or {}) do
-    local found = false
-    for tr, turret_resistance in pairs(turret_resistances) do
-      if hp_resistance.type == turret_resistance.type then
-        if hp_resistance.decrease and turret_resistance.decrease then
+  for v, variety in ipairs({WT.extinguisher_turret_name, WT.extinguisher_turret_water_name}) do
+    turret_resistances = data.raw[WT.turret_type][variety].resistances
+    turret_resistances = turret_resistances or {}
+
+
+    for hr, hp_resistance in pairs(hp_resistances or {}) do
+      local found = false
+      for tr, turret_resistance in pairs(turret_resistances) do
+        if hp_resistance.type == turret_resistance.type then
+          if hp_resistance.decrease and turret_resistance.decrease then
 --~ WT.show("hp_resistance.decrease and turret_resistance.decrease", {hp_resistance.decrease and turret_resistance.decrease})
-          turret_resistance.decrease =
-            (hp_resistance.decrease > turret_resistance.decrease) and
-            hp_resistance.decrease or turret_resistance.decrease
+            turret_resistance.decrease =
+              (hp_resistance.decrease > turret_resistance.decrease) and
+              hp_resistance.decrease or turret_resistance.decrease
 --~ WT.show("hp_resistance.decrease and turret_resistance.decrease", {hp_resistance.decrease and turret_resistance.decrease})
-        end
+          end
 
-        if hp_resistance.decrease and turret_resistance.decrease then
+          if hp_resistance.decrease and turret_resistance.decrease then
 --~ WT.show("hp_resistance.percent and turret_resistance.percent", {hp_resistance.percent and turret_resistance.percent})
-          turret_resistance.percent =
-            (hp_resistance.percent > turret_resistance.percent) and
-            hp_resistance.percent or turret_resistance.percent
+            turret_resistance.percent =
+              (hp_resistance.percent > turret_resistance.percent) and
+              hp_resistance.percent or turret_resistance.percent
 --~ WT.show("hp_resistance.percent and turret_resistance.percent", {hp_resistance.percent and turret_resistance.percent})
+          end
+          WT.dprint("Changed resistance: " .. serpent.line(turret_resistance))
+          found = true
+          break
         end
-        WT.dprint("Changed resistance: " .. serpent.line(turret_resistance))
-        found = true
-        break
       end
-    end
-    if not found then
-      turret_resistances[#turret_resistances + 1] = hp_resistance
-      WT.dprint("Added resistance: " .. serpent.line(hp_resistance))
+      if not found then
+        turret_resistances[#turret_resistances + 1] = hp_resistance
+        WT.dprint("Added resistance: " .. serpent.line(hp_resistance))
+      end
+
+
+    -- Show off the resistances!
+    data.raw[WT.turret_type][variety].hide_resistances = false
+
+    WT.dprint("%s %s has been found. Added resistances to %s!",
+              {mod_name, mods["hardened_pipes"], WT.extinguisher_turret_name})
     end
   end
-
-
-  -- Show off the resistances!
-  data.raw[WT.turret_type][WT.extinguisher_turret_name].hide_resistances = false
-
-  WT.dprint("Resistances: " .. serpent.block(data.raw[WT.turret_type][WT.extinguisher_turret_name].resistances))
 end

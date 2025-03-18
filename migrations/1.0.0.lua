@@ -30,7 +30,6 @@ end
 -- Fix turrets
 WT.show("Number of turrets", table_size(global.WT_turrets))
 for t, turret in pairs(global.WT_turrets) do
-----~ log("Turret " .. t .. ": "  .. serpent.block(global.WT_turrets[t]))
   -- Remove invalid turrets
   if not turret.entity and turret.entity.valid then
     global.WT_turrets[t] = nil
@@ -53,7 +52,7 @@ for t, turret in pairs(global.WT_turrets) do
       global.WT_turrets[t].fire_dummies = {}
       global.WT_turrets[t].fires = {}
 
-      WT.find_fire(turret.entity)
+      --~ WT.find_fire(turret.entity)
 
     -- Remove entity.fires and entity.fire_dummies from steam turrets
     else
@@ -65,7 +64,6 @@ for t, turret in pairs(global.WT_turrets) do
     global.WT_turrets[t].original_position = nil
 
   end
- -- --~ log("Turret " .. t .. ": " .. serpent.block(global.WT_turrets[t]))
 
 end
 --~ WT.show("Global table after migration", global)

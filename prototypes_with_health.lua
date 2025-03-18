@@ -17,9 +17,9 @@ log("Entered function attack(" .. serpent.line(entity_type) .. ")")
   local attack_entities = {
     -- We'll always want to attack these!
     ["character"] = { bool = true, order = 1},
-    ["spider-leg"] = { bool = true, order = 2},
-    ["spider-vehicle"] = { bool = true, order = 3},
-    ["car"] = { bool = true, order = 4},
+    --~ ["spider-leg"] = { bool = true, order = 2},
+    --~ ["spider-vehicle"] = { bool = true, order = 3},
+    --~ ["car"] = { bool = true, order = 4},
     ["unit"] = { bool = true, order = 5},
 
     ["turret"] = { bool = not settings.startup["WT-immunity-turret"].value, order = 6},
@@ -45,6 +45,7 @@ log("These entities may be attacked: " .. serpent.block(ret))
   return ret
 end
 
+------------------------------------------------------------------------------------
 -- Make list of healing_per_tick of the prototypes (name) that we want to attack.
 -- This depends on reading settings for immunity of spawners and turrets/worms,
 -- so we need to make this a function that can be called when needed.
@@ -69,6 +70,41 @@ prototypes_with_health.healing = function(entity_types)
   --~ log("End of function healing(" .. serpent.line(entity_types) .. ")")
   return ret
 end
+
+
+--~ ------------------------------------------------------------------------------------
+--~ -- Make list of forces that are enemy of the turret force and store it with the
+--~ -- turret data in the global table.
+--~ prototypes_with_health.get_enemy_forces = function(check_force)
+  --~ log(string.format("Entered function get_enemy_forces(%s).", check_force))
+
+  --~ check_force = check_force and (
+                  --~ -- Force
+                  --~ (check_force.valid and game.forces[check_force.name]) or
+                  --~ -- Force name
+                  --~ (type(check_force) == "string" and game.forces[check_force]) or
+                  --~ -- Force index
+                  --~ (type(check_force) == "number" and game.forces[check_force]) or
+                  --~ -- Force from entity
+                  --~ (check_force.valid and check_force.force)
+                --~ )
+
+  --~ if not check_force then
+    --~ error(string.format("%s is not a valid force!", check_force or "nil"))
+  --~ end
+
+  --~ local ret = {}
+
+  --~ for f, force in pairs(game.forces or {}) do
+    --~ if (force ~= check_force) and
+        --~ not (force.get_friend(check_force) or force.get_cease_fire(check_force)) then
+      --~ ret[#ret + 1] = force.name
+    --~ end
+  --~ end
+
+  --~ log(string.format("End of function get_enemy_forces(%s). (Return: %s)", check_force, serpent.block(ret)))
+  --~ return ret
+--~ end
 
 
 ------------------------------------------------------------------------------------

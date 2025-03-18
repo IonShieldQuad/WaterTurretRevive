@@ -155,4 +155,43 @@ Date: 2020-10-05
     - Fixed a crash when turrets tried to target a fire that was still in their list but didn't exist anymore.
 
 
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.2
+Date: 2020-10-14
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed a crash on start if "Cleaning Acid" was disabled. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)
+    - Fixed attack/ignore target masks of turrets and worms.
+    - Fixed crash on load with Picker Dollies. Note to self: RTFM and don't move things around unnecessarily! (https://mods.factorio.com/mod/WaterTurret/discussion/5f8a0b6385ada46b3fd823c2)
+    - Fixed an issue with artillery attacking acid splashes and fires -- happily flattening your own structures while doing so. However, the current solution doesn't fix that players with Personal Laser Defense equipped or spidertrons will attack acid splashes and fires as well. I've made a Modding interface request for the one thing that would allow an easy and effective fix; I don't know how to solve this any other way. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce, https://forums.factorio.com/viewtopic.php?f=28&t=90486)
+    - Neither cars nor spidertrons can be set as shooting target of turrets because they are not entities-with-force.
+    - Fixed the algorithm for determining if a turret can shoot at a position. That should prevent situations where turrets would effectively become inactive because they were locked on an unreachable target. (There still is a bug where turrets are locked on a target they could shoot at but don't. This Factorio bug will be fixed in Factorio 1.1, according to https://forums.factorio.com/viewtopic.php?f=30&t=90815.)
+    - Fixed that slow-down factor was assigned the value of another setting.
+
+  Changes:
+    - Turrets don't search the surface for fires and acid splashes anymore. Instead, these will  register themselves as soon as they are created. This boosts performance of the mod. Moreover, turrets don't have to wait their turn any longer before they will get to see a new fire, but can react to it almost immediately.
+    - Optimized how turrets are checked. The result is another significant speed-up of the mod even if many turrets are used.
+    - Worked on the Fire extinguisher fluid. It's now a full-fledged fluid with its own icons etc., not just a prototype for testing.
+    - Added recipes for "Fire extinguisher fluid" -- now you can actually produce it!
+    - Added setting for damage modifier of Fire extinguisher fluid. We now have water turrets with water (base damage), water turrets with steam (base damage * steam damage modifier), extinguisher turrets with water (base damage * extinguisher TURRET damage modifier), and extinguisher turrets with special fluid (base damage * extinguisher TURRET damage modifier * extinguisher FLUID modifier). On top of that, the damage is multiplied with a factor derived from the pressure modifier of the turret.
+    - With increased pressure, you'll need more fluid in the same time. Increased the turrets' buffer size so the turrets can better keep up with the demand. (It will always take 5 seconds to completely fill an empty buffer.)
+    - Added setting for compatibility with Bio Industries.
+    - Renamed dummies (prefixing names with "WT-")
+    - Fr_Dae suggested to add Rich Text to the mod name. Trying it out -- but I removed the Rich Text from the beginning of the name in order not to change the sort order.
+
+  Compatibility:
+    - "Amator Phasma's Coal and Steam" doesn't load currently, but there is a fixed version by notnotmelon. The changes to the water turret recipe will now also be applied if notnotmelon's fix is active. (https://mods.factorio.com/mod/apm-power-notnotmelon).
+    - If "Bio Industries" is active, another recipe (using charcoal) for "Fire extinguisher fluid" will be available. It will be added if the startup setting is active; otherwise, the char-coal recipe from BI will replace the default coal recipe. (https://mods.factorio.com/mod/WaterTurret/discussion/5f7c351b56914e50406d7146)
+    - If any of "Will-o'-the-Wisps updated", "Will-o'-the-Wisps updated (2)", or "The Night Has A Thousand Eyes" is active, red wisps won't be attacked by Water/Fire extinguisher turrets. If damaged, red wisps replicate rapidly, so this would cause performance issues. Red wisps still won't be immune against damage from the turrets because a random splash may make the game more interesting. (https://mods.factorio.com/mod/Will-o-the-Wisps_updated/discussion/5f84ed8e4302a194674282c9)
+    - If "Fire Department QuickFix" is active, it's water-gun stream will now also cause damage of a type that hurts the dummies from "Water Turret". Additionally, our turrets get immunity against Fire Department's water damage.
+    - If "Universal Turret_fix" is active, its Fire extinguisher turrets will now attack the dummies from "Water Turret".
+
+  Localization:
+    - Added French locale. Thanks a lot to Fr_Dae for providing the translation!
+
   TODO:
+    - Acid and fire dummies are attacked by PLD -- not sure yet what to do about it. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)
+    - Must go over the Fluid recipes again.

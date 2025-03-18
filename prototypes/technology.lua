@@ -1,5 +1,5 @@
 local WT = require('__WaterTurret__/common')("WaterTurret")
-local MOD_PIX = WT.mod_root .. "graphics/"
+local MOD_PIX = WT.mod_root .. "graphics/icons/"
 
 data:extend({
   {
@@ -21,10 +21,10 @@ data:extend({
       }
     },
     effects = {
-      {
-        type = "unlock-recipe",
-        recipe = WT.extinguisher_turret_name
-      },
+      { type = "unlock-recipe", recipe = WT.extinguisher_turret_name },
+      --~ -- Always unlock this recipe. Other unlocks will be added later on!
+      { type = "unlock-recipe", recipe = WT.fire_ex_fluid .. "-oil" },
+      --~ { type = "unlock-recipe", recipe = WT.fire_ex_fluid .. "-coal" },
     },
     prerequisites = {"lubricant"},
     unit = {

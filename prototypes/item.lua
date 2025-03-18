@@ -1,6 +1,6 @@
 local WT = require('__WaterTurret__/common')("WaterTurret")
 
-local MOD_PIX = WT.mod_root .. "graphics/"
+local MOD_PIX = WT.mod_root .. "graphics/icons/"
 
 ------------------------------------------------------------------------------------
 --                                      Item                                      --
@@ -45,25 +45,66 @@ data:extend({ wateritem, extinguisheritem })
 ------------------------------------------------------------------------------------
 --                                      Fluid                                     --
 ------------------------------------------------------------------------------------
-
 local extinguisherfluid = {
-    type = "fluid",
-    name = WT.fire_ex_fluid,
-    icon = MOD_PIX .. "biomass.png",
-    icon_size = 64,
-    icons = {
-      {
-        icon = MOD_PIX .. "biomass.png",
-        icon_size = 64,
-      }
+  type = "fluid",
+  name = WT.fire_ex_fluid,
+  -- icon_size must be defined inside the icons or the icons generated for barrelling
+  -- recipes won't be shown correctly!
+  icons = {
+    {
+      icon = MOD_PIX .. "fluid/fire-ex-fluid-icon-turret-bg.png",
+      icon_size = 128,
     },
-    default_temperature = 25,
-    max_temperature = 100,
-    heat_capacity = "1KJ",
-    base_color = {r = 0, g = 0, b = 0},
-    flow_color = {r = 0.1, g = 1.0, b = 0.0},
-    pressure_to_speed_ratio = 0.4,
-    flow_to_energy_ratio = 0.59,
-    order = "a[fluid]-b[biomass]"
-  }
+    {
+      icon = MOD_PIX .. "fluid/fire-ex-fluid-icon-turret.png",
+      icon_size = 128,
+      tint = WT.extinguisher_turret_tint,
+    },
+    {
+      icon = MOD_PIX .. "fluid/fire-ex-fluid-icon-fluid-bg.png",
+      icon_size = 128,
+      --~ tint = WT.fire_ex_fluid_tint,
+    },
+    {
+      icon = MOD_PIX .. "fluid/fire-ex-fluid-icon-fluid.png",
+      icon_size = 128,
+      tint = WT.fire_ex_fluid_tint,
+    },
+  },
+  --~ icon_size = 128,
+  default_temperature = 25,
+  max_temperature = 100,
+  heat_capacity = "1KJ",
+  -- Need to detach base_color from WT.fire_ex_fluid_tint, if it's just a reference,
+  -- the icon will get transparency as well!
+  base_color = table.deepcopy(WT.fire_ex_fluid_tint),
+  -- flow_color must be different from base_color. We'll calculate it later!
+  --~ flow_color = WT.fire_ex_fluid_tint,
+  flow_color = {},
+  pressure_to_speed_ratio = 0.4,
+  flow_to_energy_ratio = 0.59,
+  --~ order = "a[fluid]-b[biomass]"
+}
+
+-- Make sure there's enough difference between base_color and flow_color that the
+-- flow can be seen!
+local difference = 0.1
+local alpha_factor
+local x
+for color, value in pairs(extinguisherfluid.base_color) do
+WT.dprint("%s: %s", {color, value})
+  alpha_factor = (color == "a" or color == 4) and 3 or 1
+
+  x = value * (1 + difference * alpha_factor)
+  if x > 1 then
+    x = value * (1 - difference * alpha_factor)
+  end
+
+WT.dprint("%s: %s\tnew value: %s", {color, value, x})
+  extinguisherfluid.flow_color[color] = x
+end
+WT.show("flow_color", extinguisherfluid.flow_color)
+
+
+  --~ extinguisherfluid.flow_color.a = 0.5
 data:extend({ extinguisherfluid })

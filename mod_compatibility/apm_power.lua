@@ -4,8 +4,11 @@ local WT = require('__WaterTurret__/common')("WaterTurret")
 --               Compatibility with "Amator Phasma's Coal & Steam"                --
 ------------------------------------------------------------------------------------
 
+WT.dprint("Checking for \"Amator Phasma's Coal & Steam\".")
+
 -- Change recipe ingredients
-if mods["apm_power"] then
+if mods["apm_power"] or mods["apm-power-notnotmelon"] then
+
   local recipe = util.table.deepcopy(data.raw["recipe"][WT.water_turret_name])
 
   local recipe_data_normal = {
@@ -28,4 +31,5 @@ if mods["apm_power"] then
   }
 
   data:extend({WT.compile_recipe(recipe, recipe_data_normal, recipe_data_expensive)})
+  WT.dprint("\"Amator Phasma's Coal & Steam\" has been found. Water turrets now require ingredients from that mod!")
 end

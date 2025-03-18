@@ -1,5 +1,7 @@
 local WT = require('__WaterTurret__/common')("WaterTurret")
-local prototypes_with_health = require('prototypes_with_health')
+local prototypes_with_health = require('__WaterTurret__/prototypes_with_health')
+
+local acid = require('__WaterTurret__/ignore_fires')
 
 ------------------------------------------------------------------------------------
 --                               Utility functions                                --
@@ -62,12 +64,14 @@ local resistances = {
 }
 
 -- Check all prototypes of entities_with_health
-for _, prototypes in ipairs(prototypes_with_health.immune) do
+WT.dprint("Setting immunities for entites_with_health.")
 
+for _, prototypes in ipairs(prototypes_with_health.immune) do
   -- Don't give immunity to entities that should take damage!
   if not (prototypes_with_health.vulnerable[prototypes] or
             --~ prototypes_with_health.attack[prototypes]) then
             prototypes_with_health.attack(prototypes)) then
+
     for p, prototype in pairs(data.raw[prototypes]) do
 WT.dprint("Type: %s\tPrototype: %s", { prototypes, prototype.name })
       -- Ignore dummies
@@ -99,6 +103,8 @@ end
   --~-- WT.fire_ex_damage_name,
 --~ }
 --~ local vulnerability, decrease
+WT.dprint("Allow attacking mobile targets")
+
 
 for e, entitytype in pairs(prototypes_with_health.attack("get_list")) do
 WT.dprint("entitytype: %s\te: %s", { entitytype, e })
@@ -151,6 +157,8 @@ end
 ------------------------------------------------------------------------------------
 --                         Set resistances for fire dummy                         --
 ------------------------------------------------------------------------------------
+WT.dprint("Setting resistances for fire dummies")
+
 resistances = {}
 -- Make this a table so we're ready if we ever need to exclude more damage types
 -- from the immunity list
@@ -163,76 +171,168 @@ local vulnerable = {
 
 WT.show("Damage types known to the game", data.raw["damage-type"])
 -- Look for every damage type known to the game to list of resistances
-for _, damage in pairs(data.raw["damage-type"]) do
+local percent
+for d, damage in pairs(data.raw["damage-type"]) do
+WT.dprint("d: %s\tdamage: %s", {d, damage})
+  percent = 0
   -- Add damage type unless we want the entity to be vulnerable to it
   if not vulnerable[damage.name] then
-    resistances[#resistances + 1] = {
-      type = damage.name,
-      decrease = 0,
-      percent = 100
-    }
-  else
-    resistances[#resistances + 1] = {
-      type = damage.name,
-      --~ decrease = vulnerable[damage.name].decrease or 0,
-      --~ percent = vulnerable[damage.name].percent or 0
-      decrease = 0,
-      percent = 0
-    }
+    percent = 100
   end
+  resistances[#resistances + 1] = {
+    type = damage.name,
+    decrease = 0,
+    percent = percent
+  }
 end
 --~ WT.show("Resistances of \"fire-dummy\"", resistances)
 data.raw[WT.dummy_type][WT.fire_dummy_name].resistances = resistances
 
-WT.dprint("Final fire dummy: %s", { data.raw[WT.dummy_type][WT.fire_dummy_name] })
+WT.show("Final fire dummy", data.raw[WT.dummy_type][WT.fire_dummy_name])
+
+
 ------------------------------------------------------------------------------------
 --                         Set resistances for acid dummy                         --
 ------------------------------------------------------------------------------------
-for r, resistance in pairs(resistances) do
-  if resistance.type == WT.steam_damage_name then
-    resistance.decrease = -0.5
-    resistance.percent = 0
+if data.raw[WT.dummy_type][WT.acid_dummy_name] then
+  for r, resistance in pairs(resistances) do
+    if resistance.type == WT.steam_damage_name then
+      --~ resistance.decrease = -0.5
+      resistance.percent = 0
+    end
   end
+  WT.show("Resistances for acid dummy", resistances)
+  data.raw[WT.dummy_type][WT.acid_dummy_name].resistances = resistances
+  WT.show("Final acid dummy",  data.raw[WT.dummy_type][WT.acid_dummy_name])
 end
-WT.show("Resistances for acid dummy", resistances)
-data.raw[WT.dummy_type][WT.acid_dummy_name].resistances = resistances
-WT.dprint("Final acid dummy: %s", { data.raw[WT.dummy_type][WT.acid_dummy_name] })
-
 
 ------------------------------------------------------------------------------------
---                        Define attack targets for turrets                       --
+--                         Define targets for our turrets                         --
 ------------------------------------------------------------------------------------
-data.raw[WT.turret_type][WT.steam_turret_name].attack_target_mask = {
+
+-- Attack these targets
+WT.dprint("Define attack targets for turrets")
+
+local turrets = data.raw[WT.turret_type]
+turrets[WT.steam_turret_name].attack_target_mask = {
   WT.trigger_target_mobile,
   WT.trigger_target_acid_dummy,
 }
-data.raw[WT.turret_type][WT.water_turret_name].attack_target_mask = {
+turrets[WT.water_turret_name].attack_target_mask = {
   WT.trigger_target_mobile,
   WT.trigger_target_fire_dummy,
   WT.trigger_target_acid_dummy,
 }
-data.raw[WT.turret_type][WT.extinguisher_turret_name].attack_target_mask = {
+turrets[WT.extinguisher_turret_name].attack_target_mask = {
   WT.trigger_target_fire_dummy,
   WT.trigger_target_acid_dummy,
 }
+turrets[WT.extinguisher_turret_water_name].attack_target_mask = {
+  WT.trigger_target_fire_dummy,
+  WT.trigger_target_acid_dummy,
+}
+
+-- Ignore these targets
+turrets[WT.steam_turret_name].ignore_target_mask = {WT.trigger_target_ignore}
+turrets[WT.water_turret_name].ignore_target_mask = {WT.trigger_target_ignore}
+turrets[WT.extinguisher_turret_name].ignore_target_mask = {WT.trigger_target_ignore}
+turrets[WT.extinguisher_turret_water_name].ignore_target_mask = {WT.trigger_target_ignore}
 
 for turret, _ in pairs(WT.turret_names) do
   WT.dprint("%s ignore_target_mask: ",
             { turret, data.raw[WT.turret_type][turret].ignore_target_mask })
 end
 
--- Remove our dummies from attack_target_masks of other turrets
-for _, name in pairs({ "artillery", "ammo", "electric", "fluid" }) do
-  for t, turret in pairs(data.raw[name .. "-turret"]) do
+-- Target masks of other turrets
+WT.dprint("Setting target masks of other turrets")
+
+for _, name in pairs({
+      "artillery-turret", "turret",
+      "ammo-turret", "electric-turret", "fluid-turret" }) do
+  for t, turret in pairs(data.raw[name]) do
+  -- Add our dummies to ignore_target_masks of other turrets
     if not (turret.type == WT.turret_type and WT.turret_names[turret.name]) then
       turret.ignore_target_mask = turret.ignore_target_mask or {}
       table.insert(turret.ignore_target_mask, WT.trigger_target_fire_dummy)
       table.insert(turret.ignore_target_mask, WT.trigger_target_acid_dummy)
+WT.dprint("Turret: %s\tIgnore targets: %s", { turret.name, turret.ignore_target_mask or {} })
+
+  -- Remove our dummies from attack_target_masks of other turrets
+      turret.attack_target_mask = turret.attack_target_mask or { "common", "ground-unit"}
+      for ta, target in pairs(turret.attack_target_mask or {}) do
+        if target == WT.trigger_target_fire_dummy or
+            target == WT.trigger_target_acid_dummy then
+          turret.attack_target_mask[ta] = nil
+        end
+      end
     end
-WT.dprint("Turret: %s\tignore targets: %s", { turret.name, turret.ignore_target_mask or {} })
+WT.dprint("Turret: %s\tAttack targets: %s", { turret.name, turret.attack_target_mask or {} })
   end
 end
 
+
+------------------------------------------------------------------------------------
+-- Let dummies be placed when a fire is created
+------------------------------------------------------------------------------------
+local acids = acid.get_acid()
+local fires = data.raw.fire
+
+for name, entity in pairs(fires) do
+  entity.created_effect = {
+    type = "direct",
+    action_delivery = {
+      type = "instant",
+      target_effects = {
+        type = "create-entity",
+        entity_name = acids[name] and WT.acid_dummy_name or WT.fire_dummy_name,
+        --~ ignore_collision_condition = true,
+        trigger_created_entity = true,
+        offset_deviation = {{0, 0}, {0, 0}},
+        offsets ={ {0, 0} }
+
+      }
+    }
+  }
+WT.show("entity.flags", entity.flags)
+  entity.selectable_in_game = true
+  --~ entity.spawn_entity = acids[name] and WT.acid_dummy_name or WT.fire_dummy_name
+  WT.dprint("created_effect for %s: %s", {name, entity.created_effect})
+end
+
+
+
+------------------------------------------------------------------------------------
+--                     Tint barrel icons for item and recipes                     --
+------------------------------------------------------------------------------------
+local top_and_hoop_color = {
+        a = 0.75,
+        b = 0.0,
+        g = 0.0,
+        r = 0.9
+  }
+local barrel = data.raw.item[WT.fire_ex_fluid .. "-barrel"]
+if barrel and barrel.icons then
+  if barrel.icons[1] then
+  data.raw.item[WT.fire_ex_fluid .. "-barrel"].icons[1].tint = top_and_hoop_color
+  end
+  if barrel.icons[3] then
+  data.raw.item[WT.fire_ex_fluid .. "-barrel"].icons[3].tint = top_and_hoop_color
+  end
+WT.dprint("Changed barrel icon for %s!", {barrel.name})
+end
+
+for n, name in ipairs({"fill", "empty"}) do
+  barrel = data.raw.recipe[name .. "-" .. WT.fire_ex_fluid .. "-barrel"]
+  if barrel and barrel.icons then
+    if barrel.icons[1] then
+      barrel.icons[1].tint = top_and_hoop_color
+    end
+    if barrel.icons[3] then
+        barrel.icons[3].tint = top_and_hoop_color
+    end
+  end
+WT.dprint("Changed barrel icon for recipe %s.", barrel.name )
+end
 
 
 ------------------------------------------------------------------------------------
@@ -242,21 +342,25 @@ end
 -- "Amator Phasma's Coal & Steam"
 require('mod_compatibility.apm_power')
 
+-- "Bio Industries"
+require('mod_compatibility.bio_industries')
+
 -- "Hardened pipes"
 require('mod_compatibility.hardened_pipes')
 
----TESTIMG
---~ WT.show("Fluids", data.raw.fluid)
+-- "Fire Department QuickFix"
+require('mod_compatibility.fire_department_fix')
 
---~ WT.dprint("Fire prototypes:")
---~ for k, v in pairs(data.raw.fire) do
---~ WT.dprint("%s: %s", {k, v.name})
---~ end
+-- "Universal Turret_fix"
+require('mod_compatibility.uniturret_fix')
 
---~ log("Waterturret: " .. serpent.block(data.raw[WT.turret_type][WT.water_turret_name]))
---~ for k, v in pairs(data.raw[WT.turret_type][WT.water_turret_name]) do
---~ WT.dprint("%s: %s", {k, v})
---~ end
---~ log("extinguisher turret remnants: " .. serpent.block(data.raw.corpse[WT.extinguisher_turret_name .. "-remnants"]))
---~ log("flamethrower turret remnants: " .. serpent.block(data.raw.corpse["flamethrower-turret-remnants"]))
---~ log("water turret remnants: " .. serpent.block(data.raw.corpse[WT.water_turret_name .. "-remnants"]))
+-- "Will-o-the-wisps" (and forks)
+require('mod_compatibility.will-o-the-wisps')
+
+
+
+---TESTING
+local turrets = data.raw[WT.turret_type]
+for t, turret in pairs({WT.water_turret_name, WT.steam_turret_name, WT.extinguisher_turret_name, WT.extinguisher_turret_water_name} ) do
+WT.show(turret .." resistances", turrets[turret].resistances)
+end

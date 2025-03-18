@@ -62,6 +62,30 @@ return function(mod_name)
     return color
   end
 
+--~ ------------------------------------------------------------------------------------
+--~ -- Make list of forces that are enemy of the turret force and store it with the
+--~ -- turret data in the global table.
+--~ prototypes_with_health.get_enemy_forces = function(turret)
+  --~ log(string.format("End of function get_enemy_forces(%s).", turret))
+
+  --~ if not (turret and turret.valid and global.WT_turrets[turret.unit_number]) then
+    --~ error(string.format("%s (%s) is not a valid turret!",
+                          --~ turret and turret.name or "nil",
+                          --~ turret and turret.unit_number or turret.index or "nil"))
+  --~ end
+
+  --~ local ret = {}
+
+  --~ for f, force in pairs(game.forces or {}) do
+    --~ if (force ~= turret.force) and
+        --~ not (force.get_friend(turret.force) or force.get_cease_fire(turret.force)) then
+      --~ ret[#ret + 1] = force.name
+    --~ end
+  --~ end
+
+  --~ log(string.format("End of function get_enemy_forces(%s). (Return: %s)", turret, ret))
+  --~ return ret
+--~ end
 
   -- Read startup settings
   common.read_startup_settings = function()
@@ -84,21 +108,23 @@ return function(mod_name)
                                 { r = 0.25, g = 0.677, b = 0.75, a = 1 }
     --~ common.extinguisher_turret_tint = { r = 0.981, g = 0.059, b = 0.059, a = 1}
     common.extinguisher_turret_tint = set_color(common.extinguisher_turret_name) or
-                                      { r = 0.961, g = 0.181, b = 0.181, a = 1}
+                                      { r = 0.961, g = 0.181, b = 0.181, a = 0}
 
     -- Modifier for pressure (affects stream animation speed, damage, and fluid consumption)
     common.water_turret_pressure = settings.startup["WT-water-turret-pressure"].value
     common.extinguisher_turret_pressure = settings.startup["WT-extinguisher-turret-pressure"].value
 
-    -- As long as we don't have an extinguisher fluid, this setting will be disabled and we
-    -- use a default value as fallback
-    --~ common.extinguisher_damage_modifier = settings.startup["WT-extinguisher-damage-modifier"].value
-    common.extinguisher_damage_modifier =
-        settings.startup["WT-extinguisher-damage-modifier"] and
-        settings.startup["WT-extinguisher-damage-modifier"].value or 5
+    -- Damage modifier for Fire extinguisher fluid
+    common.extinguisher_fluid_damage_modifier =
+        settings.startup["WT-extinguisher-fluid-damage-modifier"].value
+    -- Damage modifier for Fire extinguisher turrets (will affect water and extinguisher fluid)
+    common.extinguisher_turret_damage_modifier =
+        --~ settings.startup["WT-extinguisher-turret-damage-modifier"] and
+        --~ settings.startup["WT-extinguisher-damage-modifier"].value or 5
+        settings.startup["WT-extinguisher-turret-damage-modifier"] .value
     --~ common.waterturret_priority = settings.startup["WT-waterturret_preferred_target"].value
     -- Slowdown factor
-    common.slowdown_factor = settings.startup["WT-extinguisher-damage-modifier"].value / 100
+    common.slowdown_factor = settings.startup["WT-target-slowdown-factor"].value / 100
     -- Turret range
     common.water_turret_range = settings.startup["WT-water-turret-range"].value
     common.extinguisher_turret_range = settings.startup["WT-extinguisher-turret-range"].value
@@ -109,11 +135,14 @@ return function(mod_name)
     -- Enable Global Variable Viewer?
     common.debug_gvv = settings.startup["WT-enable_gvv_support"] and
                        settings.startup["WT-enable_gvv_support"].value
+    -- Add new BI recipe for Fire extinguisher turrets or replace ingredient?
+    common.BI_adds_new_recipe = settings.startup["WT-recipe-BI"] and
+                                settings.startup["WT-recipe-BI"].value
   end
 
 
   -- Set mod name and base path
-  common.mod_name = common.mod_name or "WaterTurret"
+  common.mod_name = mod_name or (script and script.mod_name)
   common.mod_root = "__" .. common.mod_name .. "__/"
 
 
@@ -122,13 +151,19 @@ return function(mod_name)
   common.steam_turret_name = "WT-steam-turret"
   common.water_turret_name = "WT-water-turret"
   common.extinguisher_turret_name = "WT-fire-ex-turret"
+  common.extinguisher_turret_water_name = "WT-fire-ex-turret-water"
   -- Searchable list of turret names
   common.turret_names = {
     [common.steam_turret_name] = true,
     [common.water_turret_name] = true,
     [common.extinguisher_turret_name] = true,
+    [common.extinguisher_turret_water_name] = true,
   }
   --~ common.turret_list = common.make_name_list(common.turret_names)
+
+  -- Needed to calculate the area outside of a turrets reach -- will be set the first
+  -- time that can_shoot() is called!
+  common.water_turret_blind_angle_tan = nil
 
   -- Read startup settings
   common.read_startup_settings()
@@ -146,6 +181,19 @@ return function(mod_name)
 
   -- Fluid name
   common.fire_ex_fluid = "WT-fire_ex_fluid"
+
+  -- Fluid tint
+  --~ common.water_color = f["water"] and  f["water"].base_color
+  --~ common.steam_color = f["steam"] and f["steam"].base_color
+  common.fire_ex_fluid_tint = { r = 0.816, g = 0.820, b = 0.106, a = 1.000 }
+  --~ common.fire_ex_fluid_tint = { r = 1, g = 1, b = 1, a = 1.000 }
+
+  -- Searchable list of fluid names
+  common.fluid_names = {
+    ["water"] = true,
+    ["steam"] = true,
+    [common.fire_ex_fluid] = true,
+  }
 
   -- Damage types
   common.steam_damage_name = "WT-steam"
@@ -165,16 +213,18 @@ return function(mod_name)
   common.trigger_target_mobile = "WaterTurrets_mobile_target"
   common.trigger_target_fire_dummy = "WaterTurrets_fire_dummy"
   common.trigger_target_acid_dummy = "WaterTurrets_acid_dummy"
+  common.trigger_target_ignore = "WaterTurrets_ignore_target"
 
   -- Sticker names
   common.slowdown_sticker_name = "WaterTurrets_slowdown_sticker"
 
   -- Dummies
-  common.dummy_type = "simple-entity-with-force"
+  --~ common.dummy_type = "simple-entity-with-force"
+  common.dummy_type = "combat-robot"
   common.dummy_force = "WT-fire-dummy"
 
-  common.acid_dummy_name = "acid-dummy"
-  common.fire_dummy_name = "fire-dummy"
+  common.acid_dummy_name = "WT-acid-dummy"
+  common.fire_dummy_name = "WT-fire-dummy"
 
   -- Searchable list of dummy names
   common.dummy_types = {
@@ -190,9 +240,12 @@ return function(mod_name)
    -- This are functions that return an array!
   common.enemies = prototypes.attack
   common.enemy_healing = prototypes.healing
+  --~ common.get_enemy_forces = prototypes.get_enemy_forces
 --~ log("enemy_healing: " .. serpent.block(common.enemy_healing))
   -- Searchable list of acid names
   common.acid_types = {}
+  -- Searchable list of forces with enemy forces
+  common.force_relations = {}
 
   -- Just define these to avoid tests not working because of a typo!
   common.spawner_type = "unit-spawner"
@@ -202,29 +255,35 @@ return function(mod_name)
   ------------------------------------------------------------------------------------
   --                                   Debugging                                    --
   ------------------------------------------------------------------------------------
-  --~ common.debug_in_log = false
+  -- Debugging output in the game is not meant for players, so there won't be a
+  -- setting for it. Activate it here if you really need it!
   common.debug_in_game = false
-  -- Hide "mods" from eradicator's "Find (undefined) local vars in global context" code
-  -- at the end of the control file.
-  --~ if  (game and game.active_mods["_debug"]) or
-      --~ (not game and mods and mods["_debug"]) or
-      --~ common.debug_to_log_setting then
-    --~ common.debug_in_log = true
-  --~ end
-  if common.debug_to_log_setting then
+
+  -- Debugging to log will be active if the dummy mod is active
+  if  (mods and mods["_debug"]) or (script and script.active_mods["_debug"]) then
     common.debug_in_log = true
   end
+
+  -- Debugging can also be activated with the global setting. However, this isn't
+  -- available in the data stage yet, so we OR its value with the current state of
+  -- common.debug_in_log.
+  if common.debug_to_log_setting then
+    common.debug_in_log = common.debug_in_log or common.debug_to_log_setting
+  end
+--~ log("common.debug_in_log: " .. tostring(common.debug_in_log))
 
   -- Output debugging text
   common.dprint = function(msg, tab, ...)
     local args = {}
+    local line
 --~ log("msg: " .. msg .. "\ttab: " .. serpent.line(tab))
     -- Use serpent.line instead of serpent.block if this is true!
-    local line = ... and
+    if common.debug_in_log or common.debug_in_game then
+      line = ... and
                   (string.lower(...) == "line" or string.lower(...) == "l") and
                   true or false
 
-    if common.debug_in_log or common.debug_in_game then
+    --~ if common.debug_in_log or common.debug_in_game then
       if type(tab) ~= "table" then
         tab = { tab }
       end
@@ -270,6 +329,10 @@ return function(mod_name)
         game.print(string.format(tostring(msg), table.unpack(args)))
       end
     end
+    --~ if game then
+      --~ common.debugging_profiler.stop()
+      --~ log(common.debugging_profiler)
+    --~ end
   end
 
   -- Simple helper to show values
@@ -289,15 +352,16 @@ return function(mod_name)
 
     if entity and entity.valid then
     -- Stickers don't have an index or unit_number!
-      id =  (entity.type == "sticker" and entity.type) or
-            --~ (entity.type == "character" and entity.index) or
-            entity.unit_number or entity.type
+      --~ id =  (entity.type == "sticker" and entity.type) or
+            --~ entity.unit_number or entity.type
+      id = entity.unit_number or entity.type
 
       name = entity.name
     end
 
     --~ return name .. " (" .. tostring(id) .. ")"
-    return string.format("%s (%s)", name, id)
+    --~ return string.format("%s (%s)", name, id)
+    return (name or "nil")  .. "(" .. (id or "nil") .. ")"
   end
 
   -- Print "entityname"
@@ -309,6 +373,8 @@ return function(mod_name)
   --                                     Recipe                                     --
   ------------------------------------------------------------------------------------
   common.compile_recipe = function(recipe, recipe_data_normal, recipe_data_expensive)
+--~ common.show("recipe", recipe)
+--~ common.show("data", recipe_data_normal)
 
     -- recipe is required
     if recipe then
@@ -360,16 +426,17 @@ return function(mod_name)
 
     -- Replace settings that are given in recipe_data_expensive
     if recipe_data_expensive then
-      for k, v in pairs(recipe_data_expensive) do
+      for k, v in pairs(recipe_data_expensive or {}) do
         recipe.expensive[k] = v
       end
     -- If recipe_data_expensive doesn't exist, double the amount of all ingredients
     else
 --~ common.dprint ("expensive ingredients: %s", recipe.expensive.ingredients)
-      for k, v in pairs(recipe.expensive.ingredients) do
+      for k, v in pairs(recipe.expensive.ingredients or {}) do
         v.amount = v.amount * 2
       end
     end
+common.show("compiled recipe", recipe)
 
     return recipe
   end
@@ -427,76 +494,201 @@ return function(mod_name)
   --                    Check if an entity is one of our turrets                    --
   ------------------------------------------------------------------------------------
   common.is_WT_turret = function(turret)
-    common.dprint("Entered function is_WT_turret(%s).", {common.print_name_id(turret)})
+    common.dprint("Entered function is_WT_turret(%s).",
+                  {turret and turret.valid and turret.name or "nil"})
 
     return (turret and turret.valid) and
-            (turret.type and turret.type == common.turret_type) and
             (turret.name and common.turret_names[turret.name]) and
+            (turret.type and turret.type == common.turret_type) and
             true or false
   end
 
-  -- Check for distance >= min_range  (returns true or false)
+  ------------------------------------------------------------------------------------
+  --      Check for min_range <= distance <= max_range  (returns true or false)     --
+  ------------------------------------------------------------------------------------
   common.is_in_range = function(turret, target)
     common.dprint("Entered function is_in_range(%s, %s).",
-                  { common.print_name(turret), common.print_name(target) })
+                  { common.print_name(turret), target })
 
     -- Check arguments
-    if not (turret and turret.valid and target and target.valid) then
-      error("Wrong arguments for function is_in_range(" ..
-            tostring(turret) .. ", " .. tostring(target) .. ")!")
+    if not (turret and turret.valid) then
+      error(string.format("%s is not a valid turret!", turret))
+    end
+    if not (target and target.position) and
+        not (target and (target.x and target.y) or (target[1] and target[2]) ) then
+      error("%s is not a valid target!", target)
     end
 
+common.show("target", target)
     -- Get distance
-    local tu, ta = turret.position, target.position
-    local x, y = tu.x - ta.x, tu.y - ta.y
+    local tu = turret.position
+    local ta = target.position or target
+common.show("ta", ta)
+    local x, y = (tu.x or tu[1]) - (ta.x or ta[1]), (tu.y or tu[2]) - (ta.y or ta[2])
+common.show("x", x)
+common.show("y", y)
     local distance = math.sqrt(x*x + y*y)
 
     -- We searched a radius of max range, so we only need to check for min_range here!
-    common.dprint("End of function is_in_range(%s, %s).",
-                  { common.print_name(turret), common.print_name(target) })
-    return (distance >= global.WT_turrets[turret.unit_number].min_range)
+    --~ local ret = (distance >= global.WT_turrets[turret.unit_number].min_range and
+                  --~ distance <= global.WT_turrets[turret.unit_number].range)
+    local ret = (distance > global.WT_turrets[turret.unit_number].min_range and
+                  distance < global.WT_turrets[turret.unit_number].range)
+    common.dprint("End of function is_in_range(%s, %s). (Distance: %s. Return: %s)",
+                  { common.print_name(turret), target, distance, ret })
+    --~ return (distance >= global.WT_turrets[turret.unit_number].min_range and
+              --~ distance <= global.WT_turrets[turret.unit_number].range)
+    return ret
   end
+
+
+  ------------------------------------------------------------------------------------
+  --                        Check if two forces are enemies                         --
+  ------------------------------------------------------------------------------------
+  common.is_enemy = function(force_a, force_b)
+    common.dprint("Entered function is_enemy(%s, %s).",
+                  { common.print_name(force_a), common.print_name(force_b) })
+
+    force_a = (type(force_a) == "string" and game.forces[force_a]) or
+              (type(force_a) == "number" and game.forces[force_a]) or
+              force_a.force or force_a
+    force_b = (type(force_b) == "string" and game.forces[force_b]) or
+              (type(force_b) == "number" and game.forces[force_b]) or
+              force_b.force or force_b
+
+    if not (force_a and force_a.valid) then
+      error(string.format("%s is not a valid force!", force_a))
+    elseif not (force_b and force_b.valid) then
+      error(string.format("%s is not a valid force!", force_b))
+    end
+
+    local ret = (force_a ~= force_b) and
+                  not (force_a.get_friend(force_b) or force_a.get_cease_fire(force_b))
+
+    common.dprint("End of function is_enemy(%s, %s). (Return: %s)",
+                  { common.print_name(force_a), common.print_name(force_b), ret })
+    return ret
+  end
+
+
+  --~ ------------------------------------------------------------------------------------
+  --~ --                     Get forces that are enemy to this force                    --
+  --~ ------------------------------------------------------------------------------------
+  --~ common.get_enemy_forces = function(force)
+    --~ return prototypes.get_enemy_forces(force)
+  --~ end
+
+
+  ------------------------------------------------------------------------------------
+  -- Make list of forces that are enemy of the turret force and store it with the
+  -- turret data in the global table.
+  common.get_enemy_forces = function(check_force)
+    common.dprint("Entered function get_enemy_forces(%s).", {check_force})
+
+    check_force = check_force and (
+                    -- Force
+                    (check_force.valid and game.forces[check_force.name]) or
+                    -- Force name
+                    (type(check_force) == "string" and game.forces[check_force]) or
+                    -- Force index
+                    (type(check_force) == "number" and game.forces[check_force]) or
+                    -- Force from entity
+                    (check_force.valid and check_force.force)
+                  )
+
+    if not check_force then
+      error(string.format("%s is not a valid force!", check_force or "nil"))
+    end
+
+    local ret = {}
+
+    for f, force in pairs(game.forces or {}) do
+      if (force ~= check_force) and
+          not (force.get_friend(check_force) or force.get_cease_fire(check_force)) then
+        ret[#ret + 1] = force.name
+      end
+    end
+
+    common.dprint("End of function get_enemy_forces(%s). (Return: %s)", {check_force, serpent.block(ret)})
+    return ret
+  end
+
+
+  ------------------------------------------------------------------------------------
+  --                Get list of forces that are enemies of the turret               --
+  ------------------------------------------------------------------------------------
+  common.get_turret_enemies = function(turret)
+    common.dprint("Entered function get_turret_enemies(%s).",
+                  { common.print_name(turret) })
+
+    if not common.is_WT_turret(turret) then
+      error(string.format("%s is not a valid turret!", turret))
+    elseif not (turret.force and turret.force.valid) then
+      error(string.format("%s doesn't have a force!", common.print_name_id(turret)))
+    end
+
+common.show("common.get_enemy_forces", common.get_enemy_forces(turret))
+common.show("type(common.get_enemy_forces)", type(common.get_enemy_forces(turret)))
+
+    local force
+    if turret.name == common.water_turret_name then
+      force = turret.force.name
+      if not (force and common.force_relations[force]) then
+        common.force_relations[force] = common.get_enemy_forces(turret)
+      end
+      global.WT_turrets[turret.unit_number].enemy_forces = common.force_relations[force]
+    end
+
+    common.dprint("End of function get_turret_enemies(%s).", { common.print_name(turret) })
+  end
+
 
   ------------------------------------------------------------------------------------
   --         Get the rectangular area in the direction the turret is facing         --
   ------------------------------------------------------------------------------------
-  common.get_turret_area = function(turret)
+  common.get_turret_area = function(turret, direction)
     common.dprint("Entered function get_turret_area(%s).", {common.print_name_id(turret)})
 
     if not common.is_WT_turret(turret) then
       error("Wrong argument -- not a valid turret: " .. serpent.block(turret))
     end
+    if direction and not type(direction) == "number" then
+      error("Wrong argument -- not a valid direction: " .. serpent.block(direction))
+    end
 
-    local x, y = turret.position.x, turret.position.y
+    local x = turret.position.x or turret.position[1]
+    local y = turret.position.y or turret.position[2]
     --~ common.show("x", x)
     --~ common.show("y", y)
     --~ common.show("direction", turret.direction)
     local left_top, right_bottom
     local range = global.WT_turrets[turret.unit_number] and
-                    global.WT_turrets[turret.unit_number].range or
-                    turret.prototype.attack_parameters.range
+                    global.WT_turrets[turret.unit_number].range
+    if not range then
+      range = turret.prototype.attack_parameters.range
+      global.WT_turrets[turret.unit_number].range = range
+    end
+
+    local direction = direction or turret.direction
 
     -- Turret facing North
-    if turret.direction == defines.direction.north then
+    if direction == defines.direction.north then
       left_top = { x - range, y - range }
       right_bottom = { x + range, y }
     -- Turret facing South
-    elseif turret.direction == defines.direction.south then
+    elseif direction == defines.direction.south then
       left_top = {x - range, y}
       right_bottom = {x + range, y + range}
     -- Turret facing East
-    elseif turret.direction == defines.direction.east then
+    elseif direction == defines.direction.east then
       left_top = {x, y - range}
       right_bottom = {x + range, y + range}
     -- Turret facing West
-    elseif turret.direction == defines.direction.west then
+    elseif direction == defines.direction.west then
       left_top = {x - range, y - range}
       right_bottom = {x, y + range}
     -- This should never be reached!
     else
-      --~ error("Something unexpected has happened: " .. common.print_name_id(turret) ..
-            --~ " has direction " .. tostring(turret.direction) ..
-            --~ ", which is not a cardinal direction.")
       error(string.format(
         "Something unexpected has happened: %s has direction %s, which is not a cardinal direction.", common.print_name_id(turret), turret.direction)
       )
@@ -507,8 +699,8 @@ return function(mod_name)
       --~ if global.WT_turrets[turret.unit_number].render_area then
         --~ rendering.destroy(global.WT_turrets[turret.unit_number].render_area)
       --~ end
-      --~ global.WT_turrets[turret.unit_number].render_area = rendering.draw_rectangle{left_top = left_top, right_bottom = right_bottom, color = {r = 0.5, a = 0.001}, filled = true, surface = turret.surface}
-      --~ rendering.draw_circle{color= {g = 0.5, a = 0.001}, radius = range, filled = true, target = turret.position, surface = turret.surface}
+      --~ global.WT_turrets[turret.unit_number].render_area = rendering.draw_rectangle{left_top = left_top, right_bottom = right_bottom, color = {r = 1, g = 1, b = 1, a = .1}, filled = true, surface = turret.surface}
+      --~ rendering.draw_circle{color= {r = 0.1, g = 0.1, b = 0, a = 0.1}, radius = range, filled = true, target = turret.position, surface = turret.surface}
     --~ end
 
     return { left_top = left_top, right_bottom = right_bottom }
@@ -516,344 +708,431 @@ return function(mod_name)
 
 
   ------------------------------------------------------------------------------------
-  --        Exchange steam and water turrets if fluidbox contains wrong ammo        --
-  --        (Returns nil for invalid turrets, or id (unit_number) of turret)        --
+  --                       Check if target is in turret range                       --
   ------------------------------------------------------------------------------------
-  common.swap_turrets = function(id)
-    common.dprint("Entered function swap_turrets(%s).", {id})
+  common.can_shoot = function(turret, position)
+    common.dprint("Entered function can_shoot(%s,%s) on tick %g.",
+                  { common.print_name_id(turret), position or "nil", game.tick })
 
-    ------------------------------------------------------------------------------------
-    --                               Bail out on errors                               --
-    ------------------------------------------------------------------------------------
-    -- Invalid argument
-    if (not id) or (type(id) ~= "number") then
-      error("\"" .. tostring(id) .. "\" is not a valid turret id!")
-    -- No turret stored with this ID
-    elseif not global.WT_turrets[id] then
-      error("No turret with id " .. tostring(id) .. " has been registered!")
-    -- Invalid turret
-    elseif not global.WT_turrets[id].entity.valid then
-      global.WT_turrets[id] = nil
-      common.dprint("Removed expired id %s from list of registered turrets.", {id})
-      return nil
+    turret = (turret and turret.valid and global.WT_turrets[turret.unit_number])
+    if not turret then
+      error("Wrong argument -- not a valid turret: " .. serpent.block(turret))
+    elseif not (position and (position.x or position[1]) and
+                              (position.y or position[2])) then
+      error("Wrong argument -- not a valid target: " .. serpent.block(position))
     end
 
-    ------------------------------------------------------------------------------------
-    --                                Local definitions                               --
-    ------------------------------------------------------------------------------------
+    local target_x, target_y, turret_x, turret_y, tmp
+    target_x = position.x or position[1]
+    target_y = position.y or position[2]
+    turret_x = turret.entity.position.x or turret.entity.position[1]
+    turret_y = turret.entity.position.y or turret.entity.position[2]
+
+    local ret = false
+
+    local area = turret.area
+
+    -- Precalculate the tangens of the turrets' blind angle just once -- it's a constant
+    -- that won't change until Factorio is restarted!
+    if not common.water_turret_blind_angle_tan then
+      local angle
+      local proto = game.get_filtered_entity_prototypes({
+        { filter = "type", type = common.turret_type },
+        { filter = "name", name = common.water_turret_name, mode = "and" }
+      })
+common.show("proto name", proto[common.water_turret_name].name)
+common.show("proto[common.water_turret_name]", proto[common.water_turret_name])
+      if proto[common.water_turret_name]  then
+        -- Turning range is symmetric along the turret' center, so we need to
+        -- consider only half of that. Divide by 2 -- or multiply the value by
+        -- 180 instead of 360!
+        local angle = (proto[common.water_turret_name].attack_parameters.turn_range * 180)
+        -- The blind area of the turret is formed by the 2 right-angle triangles ABC
+        -- where A is the turret position, B is the target's x-value (y = turrets's y),
+        --  and C the intersection of the line from A at $angle and a line from B at
+        -- 90°. So we're not interested in the turning angle, but its complement!
+        angle = math.rad(90 - angle)
+        common.water_turret_blind_angle_tan = math.tan(angle)
+      else
+        error(string.format("Prototype for %s doesn't exist!", common.water_turret_name))
+      end
+    end
+
+
+    -- Check that target is in shooting range
+    if common.is_in_range(turret.entity, position) then
+      -- For easier calculation rotate dummy position and turret area by 90°
+      if turret.entity.direction == defines.direction.east or
+          turret.entity.direction == defines.direction.west then
+        --~ area = common.get_turret_area(turret.entity, turret.entity.direction)
+common.dprint("target_x: %s\ttarget_y: %s", {target_x, target_y})
+        target_x, target_y = target_y, -target_x
+        common.dprint("Rotated target position to %s", {{target_x, target_y}})
+      end
+
+
+      -- Normalizing to absolute values makes that usable for North and South
+      local y = math.abs(target_y - turret_y)
+      local x = math.abs(target_x - turret_x)
+--~ common.show("angle", common.water_turret_blind_angle_tan)
+common.show("turret_x", turret_x)
+common.show("turret_y", turret_y)
+common.show("x", x)
+common.show("y", y)
+common.show("math.tan(angle)", common.water_turret_blind_angle_tan)
+
+      -- The blind area of the turret is formed by the 2 right-angle triangles ABC
+      -- where A is the turret position, B is the target's x-value (y = turrets's y),
+      --  and C the intersection of the line from A at $angle and a line from B at
+      -- 90°. If y is greater than the distance BC, the turrect can reach the position.
+      if y > x * common.water_turret_blind_angle_tan then
+        ret = true
+      end
+    else
+common.dprint("Target position is not in range!")
+    end
+
+    common.dprint("End of function can_shoot(%s,%s) on tick %g. (Return: %s)",
+                  { common.print_name_id(turret), position or "nil", game.tick, ret })
+
+    return ret
+  end
+
+
+
+
+
+  ------------------------------------------------------------------------------------
+  --                           Register fires and dummies                           --
+  ------------------------------------------------------------------------------------
+  common.register_fire_dummy = function(dummy)
+    common.dprint("Entered function register_fire_dummy (%s)", {common.print_name_id(dummy)})
+    if not (dummy and dummy.valid) then
+      error(string.format("%s is not a valid dummy!", dummy))
+    end
+
+--~ local test = dummy.surface.find_entities_filtered({type = "fire", position = dummy.position})
+--~ common.show("Fires at dummy position", test)
+--~ test = dummy.surface.find_entities_filtered({type = common.dummy_type})
+--~ common.show("Dummies on surface", test)
+--~ for d, dummy in pairs(test) do
+  --~ common.dprint("d: %s\tunit_number: %s", {d, dummy.unit_number})
+--~ end
+    -- Change attributes of dummy
+    local dummy_id = dummy.unit_number
+
+    dummy.active = false
+    if dummy.name == common.fire_dummy_name then
+      local anim = rendering.draw_animation({
+        animation = common.dummy_animation_name,
+        target = dummy,
+        surface = dummy.surface,
+        render_layer = "ground-patch",
+        forces = {"player"}
+      })
+common.show("anim", anim)
+    end
+    dummy.force = common.dummy_force
+--~ local x = dummy.position.x or dummy.position[1]
+--~ local y = dummy.position.y or dummy.position[2]
+--~ local area = {{x-1, y-1}, {x+1, y+1}}
+--~ common.show("area", area)
+    local fire = dummy.surface.find_entities_filtered({
+      type = "fire",
+      position = dummy.position,
+      --~ radius = 1
+      --~ area = area
+    })[1]
+common.dprint("fire: %s\tposition: %s", {common.print_name_id(fire), fire.position})
+common.dprint("dummy: %s\tposition: %s", {common.print_name_id(dummy), dummy.position})
+
+
+    if fire and fire.valid then
+common.dprint("Fire is valid -- registering!")
+      -- Add data to tables
+      local fire_id = script.register_on_entity_destroyed(fire)
+      local fire_data = {
+        dummy_entity = dummy,
+        dummy_id = dummy_id,
+        fire_entity = fire,
+        fire_id = fire_id,
+      }
+
+common.show("fire_data", fire_data)
+      global.fire_dummies[dummy_id] = fire_data
+      global.fires[fire_id] = fire_data
+
+      local x = dummy.position.x or dummy.position[1]
+      local y = dummy.position.y or dummy.position[2]
+
+      global.dummy_positions[x] = global.dummy_positions[x] or {}
+      global.dummy_positions[x][y] = dummy_id
+
+      --~ global.fire_positions[x] = global.fire_positions[x] or {}
+      --~ global.fire_positions[x][y] = fire_id
+      end
+  end
+
+
+
+
+  --~ ------------------------------------------------------------------------------------
+  --~ --        Exchange steam and water turrets if fluidbox contains wrong ammo        --
+  --~ --        (Returns nil for invalid turrets, or id (unit_number) of turret)        --
+  --~ ------------------------------------------------------------------------------------
+  --~ common.swap_turrets = function(id)
+    --~ common.dprint("Entered function swap_turrets(%s).", {id})
+
+    --~ ------------------------------------------------------------------------------------
+    --~ --                               Bail out on errors                               --
+    --~ ------------------------------------------------------------------------------------
+    --~ -- Invalid argument
+    --~ if (not id) or (type(id) ~= "number") then
+      --~ error("\"" .. tostring(id) .. "\" is not a valid turret id!")
+    --~ -- No turret stored with this ID
+    --~ elseif not global.WT_turrets[id] then
+      --~ error("No turret with id " .. tostring(id) .. " has been registered!")
+    --~ -- Invalid turret
+    --~ elseif not global.WT_turrets[id].entity.valid then
+      --~ global.WT_turrets[id] = nil
+      --~ common.dprint("Removed expired id %s from list of registered turrets.", {id})
+      --~ return nil
+    --~ end
+
+    --~ ------------------------------------------------------------------------------------
+    --~ --                                Local definitions                               --
+    --~ ------------------------------------------------------------------------------------
 
 --~ common.dprint ("Looking for turret with id %s.", {id})
 --~ common.dprint("global.WT_turrets[%g]: %s", { id, global.WT_turrets[id] } )
 
-    local turret = global.WT_turrets[id].entity
-    local new_turret = nil
-    local input = nil
-    local output = nil
-    local neighbours = turret.neighbours and turret.neighbours[1] or nil
-    local t_fluid = turret.get_fluid_contents()
-    -- Set neighbours to nil if it's an empty table -- otherwise tests won't work!
-    if neighbours and table_size(neighbours) == 0 then neighbours = nil end
+    --~ local turret = global.WT_turrets[id].entity
+    --~ local new_turret = nil
+    --~ local input = nil
+    --~ local output = nil
+    --~ local neighbours = turret.neighbours and turret.neighbours[1] or nil
+    --~ local t_fluid = turret.get_fluid_contents()
+    --~ -- Set neighbours to nil if it's an empty table -- otherwise tests won't work!
+    --~ if neighbours and table_size(neighbours) == 0 then neighbours = nil end
 
-common.dprint ("Neighbours of %s: %s ", {turret.name, neighbours and neighbours.name or "none"})
+--~ common.dprint ("Neighbours of %s: %s ", {turret.name, neighbours and neighbours.name or "none"})
 
-common.dprint("t_fluid: %s", t_fluid)
-common.dprint("t_fluid.steam and turret.name == \"%s\": %s", {common.water_turret_name, t_fluid.steam and turret.name == common.water_turret_name and true or false})
-common.dprint("t_fluid.water and turret.name == \"%s\": %s", {common.steam_turret_name, t_fluid.water and turret.name == common.steam_turret_name and true or false})
-    ------------------------------------------------------------------------------------
-    --                        Leave early if everything is OK                         --
-    ------------------------------------------------------------------------------------
-    -- Turret is not connected to a pipe and doesn't contain fluid -- wait until it is
-    -- hooked up and useful!
+--~ common.dprint("t_fluid: %s", t_fluid)
+--~ common.dprint("t_fluid.steam and turret.name == \"%s\": %s", {common.water_turret_name, t_fluid.steam and turret.name == common.water_turret_name and true or false})
+--~ common.dprint("t_fluid.water and turret.name == \"%s\": %s", {common.steam_turret_name, t_fluid.water and turret.name == common.steam_turret_name and true or false})
+    --~ ------------------------------------------------------------------------------------
+    --~ --                        Leave early if everything is OK                         --
+    --~ ------------------------------------------------------------------------------------
+    --~ -- Turret is not connected to a pipe and doesn't contain fluid -- wait until it is
+    --~ -- hooked up and useful!
 --~ common.show("turret.get_fluid_contents()", turret.get_fluid_contents())
-    if not neighbours then
-      common.dprint("Leave early: %s is not hooked up!", {common.print_name_id(turret)})
-      return id
-    end
-
-    -- Turret is connected, now get contents of adjacent pipes!
-    input = neighbours[1] and neighbours[1].get_fluid_contents()
-    --~ input = neighbours[1] and neighbours[1].fluidbox[1]
-    output = neighbours[2] and neighbours[2].get_fluid_contents()
-    -- Set vars to nil if they contain empty tables -- otherwise tests won't work!
-    if input and table_size(input) == 0 then input = nil end
-    if output and table_size(output) == 0 then output = nil end
-    --~ input = (next(input) and input) or nil
-    --~ output = (next(output) and output) or nil
-common.show("input", input)
-common.show("output", output)
-
-    -- Pipes are empty -- wait until they are filled up!
-    if not input and not output then
-      common.dprint("Leave early: %s is connected to empty pipes!", common.print_name_id(turret))
-      return id
-    -- Pipes contain some other fluid than steam or water
-    elseif (input and not (input.steam or input.water)) or
-       (output and not (output.steam or output.water)) then
-      common.dprint(
-        "Leave early: Neighbours of %s contain wrong fluid(s)! (Input: %s, output: %s)", {
-          common.print_name_id(turret),
-          ((input and input.steam and input.steam.name) or
-          (input and input.water and input.water.name)),
-          ((output and output.steam and output.steam.name) or
-          (output and output.water and output.water.name)) or "nil"
-        }
-      )
-      return id
-    -- Connected to 2 pipes with different fluids
-    elseif (input and output) and
-            ((input.steam and output.water) or
-             (input.water and output.steam)) then
-      common.dprint(
-        "Leave early: Neighbours of %s contain different fluids! (Input: %s, output: %s)", {
-          common.print_name_id(turret),
-          (input and input.steam and "steam" or input and input.water and "water"),
-          (output and output.steam and "steam" or output and output.water and "water")
-        }
-      )
-      return id
-    end
-    -- Connected to 2 pipes filled with same fluid as turret
-    -- (Both pipes contain the same fluid, so we need to check just one pipe!)
-    if (input and output) and (
-            (turret.name == common.steam_turret_name and t_fluid.steam and input.steam) or
-            (turret.name == common.water_turret_name and t_fluid.water and input.water)
-          ) then
-      common.dprint("Leave early: %s is connected to %s", {
-        common.print_name_id(turret),
-        (input.steam and "steam" or input.water and "water")
-      })
-      return id
-    -- Connected to 1 pipe filled with same fluid as turret
-    elseif (
-              (input and input.steam and turret.name == common.steam_turret_name) or
-              (input and input.water and turret.name == common.water_turret_name)
-            ) or (
-              (output and output.steam and turret.name == common.steam_turret_name) or
-              (output and output.water and turret.name == common.water_turret_name)
-            ) then
-      common.dprint(
-        "Leave early: %s is connected to %s", {
-          common.print_name_id(turret),
-          (
-            (input and input.steam and "steam") or
-            (input and input.water and "water") or
-            (output and output.steam and "steam") or
-            (output and output.water and "water")
-          )
-        }
-      )
-      return id
-    end
-
-
-    ------------------------------------------------------------------------------------
-    --                       We should replace the old turret!                        --
-    ------------------------------------------------------------------------------------
-    -- Replace steam turret?
-    if  turret.name == common.steam_turret_name and
-        (input and input.water) or
-        (output and output.water) then
-      new_turret = common.water_turret_name
-    -- Replace water turret?
-    elseif turret.name == common.water_turret_name and
-           (input and input.steam) or
-           (output and output.steam) then
-      new_turret = common.steam_turret_name
-    -- This should never be called!
-    else
-      error(string.format("Something is wrong with %s!\nInput: %s\nOutput: %s",
-                            turret and turret.name or "unknown turret", input, output))
-    end
-    common.dprint("Replacing %s with %s!", { common.print_name_id(turret), new_turret })
-common.dprint("input: %s\toutput: %s", {input or "none", output or "none"})
-
-
-    -- Swap entities
-    if new_turret then
-      --~ -- Store fluid from connecting pipes. We'll need to insert it into the new turret!
-      --~ t_fluid = (input and neighbours[1].fluidbox[1]) or
-                --~ (output and neighbours[2].fluidbox[1])
-
-      local properties = {
-        ["surface"] = turret.surface,
-        ["position"] = turret.position,
-        ["direction"] = turret.direction,
-        ["force"] = turret.force,
-        ["target"] = turret.shooting_target,
-        ["damage_dealt"] = turret.damage_dealt,
-        ["kills"] = turret.kills,
-      }
-      --~ common.show("Stored properties of " .. common.print_name_id(turret), properties)
-      -- Remove old turret
-      turret.destroy({ raise_destroy = false })
-      -- Create new turret
-      local t = properties.surface.create_entity{
-        name = new_turret,
-        position = properties.position,
-        direction = properties.direction,
-        force = properties.force,
-        target = properties.shooting_target,
-      }
-
-      if t then
-        common.show("Created", common.print_name_id(t))
-        -- Register new turret (new turrets will keep "tick" and area of the turret they replaced)
-        global.WT_turrets[t.unit_number] = {
-          ["entity"] = t,
-          ["tick"] = global.WT_turrets[id].tick,
-          ["area"] = global.WT_turrets[id].area,
-          ["min_range"] = global.WT_turrets[id].min_range,
-          ["range"] = global.WT_turrets[id].range,
-          ["id"] = t.unit_number,
-        }
-        -- Transfer damage dealt by this turret and number of kills to new turret
-        global.WT_turrets[t.unit_number].entity.damage_dealt = properties.damage_dealt
-        global.WT_turrets[t.unit_number].entity.kills = properties.kills
-  common.dprint("global.WT_turrets[%g].entity: %s",
-                { t.unit_number, global.WT_turrets[t.unit_number].entity })
-common.dprint("New contents of %s. 1: %s\t2: %s", {common.print_name_id(t), t.fluidbox and t.fluidbox[1] or "empty", t.fluidbox and t.fluidbox[2] or "empty"})
-      else
-        error("Something bad happened: Couldn't create " .. new_turret .. "!")
-      end
-
-      turret = global.WT_turrets[t.unit_number].entity
-
-    end
-    common.dprint("Contents of %s: %s", { common.print_name_id(turret), turret.fluidbox } )
-    common.dprint("End of function swap_turrets(%s).", { id })
-
-    return turret.unit_number
-  end
-
-
-  ------------------------------------------------------------------------------------
-  --                  Search for fire
-  ------------------------------------------------------------------------------------
-  common.find_fire = function(turret)
-    common.dprint("Entered function find_fire(%s) on tick %g.",
-                  { common.print_name_id(turret), game.tick })
-
-    -- Check argument
-    if not (turret and turret.valid) then
-      error("Wrong arguments for function find_fire(turret):\nTurret is not valid!\n")
-    end
-
-    local fires
-
-    -- Determine search area in the direction the turret is facing
-    local area = global.WT_turrets[turret.unit_number].area or
-                  common.get_turret_area(turret)
-    local dummy, dummy_id, fire_id
-
-    -- Do we clean up acid splashes? Then we should check if the turret shoots
-    -- steam! We want to ignore other fires in that case.
-    if turret.name == common.steam_turret_name then
-    --~ common.dprint("name: %s\tposition: %s\tradius: %s", {
-      --~ global.acids,
-      --~ turret.position,
-      --~ (global.WT_turrets[turret.unit_number].range or turret.prototype.attack_parameters.range)
-    --~ })
-      fires = table_size(global.acids) > 0 and turret.surface.find_entities_filtered({
-        type = "fire",
-        name = global.acids,
-        position = turret.position,
-        radius = global.WT_turrets[turret.unit_number].range or
-                  turret.prototype.attack_parameters.range
-      }) or {}
-
-    -- Get all fires around turret position (radius: turret range)
-    else
-      fires = turret.surface.find_entities_filtered{
-        type = "fire",
-        position = turret.position,
-        radius = global.WT_turrets[turret.unit_number].range or
-                  turret.prototype.attack_parameters.range
-      }
-    end
-
-    -- Find fires in direction the turret is facing
---~ common.show("area", area)
-    --~ local extinguisher_target
-    for f, fire in ipairs(fires) do
---~ common.dprint("%g: %s\tposition: %s", { f, fire.name, fire.position })
-      if not global.ignore_fires[fire.name] and
-          (turret.name == common.extinguisher_turret_name and
-            common.is_in_range(turret, fire)) or
-          (math2d.bounding_box.contains_point(area, fire.position) and
-            common.is_in_range(turret, fire)) then
-common.dprint("Fire is in area and in range!")
-
-        -- Generate ID for fire (If the same entity is registered multiple times,
-        -- it will always get the same ID.)
-        fire_id = script.register_on_entity_destroyed(fire)
-  --~ common.show("fire_id", fire_id)
-        -- Has that fire already been registered for another turret?
-        if global.fires[fire_id] then
-          dummy = global.fires[fire_id].dummy_entity
-        -- New fire -- create dummy!
-        else
-          local name = (common.acid_types[fire.name]) and
-                        common.acid_dummy_name or common.fire_dummy_name
-          dummy = fire.surface.create_entity({
-            name = name,
-            position = fire.position,
-            force = common.dummy_force,
-          })
-
-          if name == common.fire_dummy_name then
-            rendering.draw_animation({
-              animation = common.dummy_animation_name,
-              target = dummy,
-              surface = dummy.surface,
-              render_layer = "ground-patch"
-            })
-          end
-        end
-
-        if dummy and dummy.valid then
-          dummy_id = dummy.unit_number
-          common.show("Created dummy", dummy_id)
-          local fire_data = {
-            dummy_entity = dummy,
-            dummy_id = dummy_id,
-            fire_entity = fire,
-            fire_id = fire_id,
-          }
-          global.fire_dummies[dummy_id] = fire_data
-          global.fires[fire_id] = fire_data
-
-          -- We don't store fires with steam turrets!
-          --~ if not (common.clean_acid_splashes) then
-          if turret.name ~= common.steam_turret_name then
-            global.WT_turrets[turret.unit_number].fire_dummies[dummy_id] = fire_data
-            global.WT_turrets[turret.unit_number].fires[fire_id] = fire_data
-          end
-          --~ extinguisher_target = dummy
-        end
-      end
-    end
---~ common.show(" (turret.name == common.extinguisher_turret_name) and extinguisher_target",  (turret.name == common.extinguisher_turret_name) and extinguisher_target)
---~ common.show("extinguisher_target: ", extinguisher_target)
-    --~ if (turret.name == common.extinguisher_turret_name) and extinguisher_target then
---~ common.dprint("Setting target for extinguisher turret!")
-      --~ turret.shooting_target = extinguisher_target
+    --~ if not neighbours then
+      --~ common.dprint("Leave early: %s is not hooked up!", {common.print_name_id(turret)})
+      --~ return id
     --~ end
---~ common.dprint("global.fire_dummies %s", { global.fire_dummies or {} })
---~ common.dprint("global.fires %s", { global.fires or {} })
---~ common.dprint("global.WT_turrets[%g].fire_dummies: %s", {
-  --~ turret.unit_number,
-  --~ global.WT_turrets[turret.unit_number].fire_dummies or {}
---~ })
---~ common.dprint("global.WT_turrets[%g].fires: %s", {
-  --~ turret.unit_number,
-  --~ global.WT_turrets[turret.unit_number].fires or {}
---~ })
 
-    common.dprint("End of function find_fire(%s) on tick %g.", {
-      common.print_name_id(turret),
-      game.tick
-    })
-  end
+    --~ -- Turret is connected, now get contents of adjacent pipes!
+    --~ input = neighbours[1] and neighbours[1].get_fluid_contents()
+    --~ --input = neighbours[1] and neighbours[1].fluidbox[1]
+    --~ output = neighbours[2] and neighbours[2].get_fluid_contents()
+    --~ -- Set vars to nil if they contain empty tables -- otherwise tests won't work!
+    --~ if input and table_size(input) == 0 then input = nil end
+    --~ if output and table_size(output) == 0 then output = nil end
+    --~ -- input = (next(input) and input) or nil
+    --~ -- output = (next(output) and output) or nil
+--~ common.show("input", input)
+--~ common.show("output", output)
+
+    --~ -- Pipes are empty -- wait until they are filled up!
+    --~ if not input and not output then
+      --~ common.dprint("Leave early: %s is connected to empty pipes!", common.print_name_id(turret))
+      --~ return id
+    --~ -- Pipes contain some other fluid than steam or water
+    --~ elseif (input and not (input.steam or input.water)) or
+       --~ (output and not (output.steam or output.water)) then
+      --~ common.dprint(
+        --~ "Leave early: Neighbours of %s contain wrong fluid(s)! (Input: %s, output: %s)", {
+          --~ common.print_name_id(turret),
+          --~ ((input and input.steam and input.steam.name) or
+          --~ (input and input.water and input.water.name)),
+          --~ ((output and output.steam and output.steam.name) or
+          --~ (output and output.water and output.water.name)) or "nil"
+        --~ }
+      --~ )
+      --~ return id
+    --~ -- Connected to 2 pipes with different fluids
+    --~ elseif (input and output) and
+            --~ ((input.steam and output.water) or
+             --~ (input.water and output.steam)) then
+      --~ common.dprint(
+        --~ "Leave early: Neighbours of %s contain different fluids! (Input: %s, output: %s)", {
+          --~ common.print_name_id(turret),
+          --~ (input and input.steam and "steam" or input and input.water and "water"),
+          --~ (output and output.steam and "steam" or output and output.water and "water")
+        --~ }
+      --~ )
+      --~ return id
+    --~ end
+    --~ -- Connected to 2 pipes filled with same fluid as turret
+    --~ -- (Both pipes contain the same fluid, so we need to check just one pipe!)
+    --~ if (input and output) and (
+            --~ (turret.name == common.steam_turret_name and t_fluid.steam and input.steam) or
+            --~ (turret.name == common.water_turret_name and t_fluid.water and input.water)
+          --~ ) then
+      --~ common.dprint("Leave early: %s is connected to %s", {
+        --~ common.print_name_id(turret),
+        --~ (input.steam and "steam" or input.water and "water")
+      --~ })
+      --~ return id
+    --~ -- Connected to 1 pipe filled with same fluid as turret
+    --~ elseif (
+              --~ (input and input.steam and turret.name == common.steam_turret_name) or
+              --~ (input and input.water and turret.name == common.water_turret_name)
+            --~ ) or (
+              --~ (output and output.steam and turret.name == common.steam_turret_name) or
+              --~ (output and output.water and turret.name == common.water_turret_name)
+            --~ ) then
+      --~ common.dprint(
+        --~ "Leave early: %s is connected to %s", {
+          --~ common.print_name_id(turret),
+          --~ (
+            --~ (input and input.steam and "steam") or
+            --~ (input and input.water and "water") or
+            --~ (output and output.steam and "steam") or
+            --~ (output and output.water and "water")
+          --~ )
+        --~ }
+      --~ )
+      --~ return id
+    --~ end
+
+
+    --~ ------------------------------------------------------------------------------------
+    --~ --                       We should replace the old turret!                        --
+    --~ ------------------------------------------------------------------------------------
+    --~ -- Replace steam turret?
+    --~ if  turret.name == common.steam_turret_name and
+        --~ (input and input.water) or
+        --~ (output and output.water) then
+      --~ new_turret = common.water_turret_name
+    --~ -- Replace water turret?
+    --~ elseif turret.name == common.water_turret_name and
+           --~ (input and input.steam) or
+           --~ (output and output.steam) then
+      --~ new_turret = common.steam_turret_name
+    --~ -- This should never be called!
+    --~ else
+      --~ error(string.format("Something is wrong with %s!\nInput: %s\nOutput: %s",
+                            --~ turret and turret.name or "unknown turret", input, output))
+    --~ end
+    --~ common.dprint("Replacing %s with %s!", { common.print_name_id(turret), new_turret })
+--~ common.dprint("input: %s\toutput: %s", {input or "none", output or "none"})
+
+
+    --~ -- Swap entities
+    --~ if new_turret then
+      -- Store fluid from connecting pipes. We'll need to insert it into the new turret!
+      --~ --t_fluid = (input and neighbours[1].fluidbox[1]) or
+                --~ -- (output and neighbours[2].fluidbox[1])
+
+      --~ local properties = {
+        --~ ["surface"] = turret.surface,
+        --~ ["position"] = turret.position,
+        --~ ["direction"] = turret.direction,
+        --~ ["force"] = turret.force,
+        --~ ["target"] = turret.shooting_target,
+        --~ ["damage_dealt"] = turret.damage_dealt,
+        --~ ["kills"] = turret.kills,
+      --~ }
+      --~ -- common.show("Stored properties of " .. common.print_name_id(turret), properties)
+      --~ -- Remove old turret
+      --~ turret.destroy({ raise_destroy = false })
+      --~ -- Create new turret
+      --~ local t = properties.surface.create_entity{
+        --~ name = new_turret,
+        --~ position = properties.position,
+        --~ direction = properties.direction,
+        --~ force = properties.force,
+        --~ target = properties.shooting_target,
+      --~ }
+
+      --~ if t then
+        --~ common.show("Created", common.print_name_id(t))
+        --~ -- Register new turret (new turrets will keep "tick" and area of the turret they replaced)
+        --~ global.WT_turrets[t.unit_number] = {
+          --~ ["entity"] = t,
+          --~ ["tick"] = global.WT_turrets[id].tick,
+          --~ ["area"] = global.WT_turrets[id].area,
+          --~ ["min_range"] = global.WT_turrets[id].min_range,
+          --~ ["range"] = global.WT_turrets[id].range,
+          --~ ["id"] = t.unit_number,
+        --~ }
+        --~ -- Transfer damage dealt by this turret and number of kills to new turret
+        --~ global.WT_turrets[t.unit_number].entity.damage_dealt = properties.damage_dealt
+        --~ global.WT_turrets[t.unit_number].entity.kills = properties.kills
+  --~ common.dprint("global.WT_turrets[%g].entity: %s",
+                --~ { t.unit_number, global.WT_turrets[t.unit_number].entity })
+--~ common.dprint("New contents of %s. 1: %s\t2: %s", {common.print_name_id(t), t.fluidbox and t.fluidbox[1] or "empty", t.fluidbox and t.fluidbox[2] or "empty"})
+      --~ else
+        --~ error("Something bad happened: Couldn't create " .. new_turret .. "!")
+      --~ end
+
+      --~ turret = global.WT_turrets[t.unit_number].entity
+
+    --~ end
+    --~ common.dprint("Contents of %s: %s", { common.print_name_id(turret), turret.fluidbox } )
+    --~ common.dprint("End of function swap_turrets(%s).", { id })
+
+    --~ return turret.unit_number
+  --~ end
+
+
+  --~ ------------------------------------------------------------------------------------
+  --~ --                  Search for fire
+  --~ ------------------------------------------------------------------------------------
+  --~ common.find_fire = function(turret)
+    --~ common.dprint("Entered function find_fire(%s) on tick %g.",
+                  --~ { common.print_name_id(turret), game.tick })
+
+    --~ -- Check argument
+    --~ if not (turret and turret.valid and global.WT_turrets[turret.unit_number]) then
+      --~ error("Wrong arguments for function find_fire(turret):\nTurret is not valid!\n")
+    --~ end
+
+    --~ local ret
+
+    --~ -- Determine search area in the direction the turret is facing
+    --~ local area = global.WT_turrets[turret.unit_number].area or
+                  --~ common.get_turret_area(turret)
+--~ common.show("Turret area", area)
+    --~ local x_min = area.left_top.x or area.left_top[1]
+    --~ local y_min = area.left_top.y or area.left_top[2]
+    --~ local x_max = area.right_bottom.x or area.right_bottom[1]
+    --~ local y_max = area.right_bottom.y or area.right_bottom[2]
+--~ common.show("global.dummy_positions", global.dummy_positions)
+    --~ for x, y in pairs(global.dummy_positions) do
+--~ common.dprint("x: %s\tx_min: %s\tx_max: %s", {x, x_min, x_max})
+      --~ if x >= x_min and x <= x_max then
+--~ common.dprint("x is valid -- checking y!")
+        --~ for y, dummy_id in pairs(y) do
+--~ common.dprint("y: %s\ty_min: %s\ty_max: %s", {y, y_min, y_max})
+          --~ if y >= y_min and y <= y_max and common.can_shoot(turret, {x, y}) then
+            --~ ret = dummy_id
+            --~ break
+          --~ end
+        --~ end
+      --~ end
+      --~ if ret then
+        --~ break
+      --~ end
+    --~ end
+
+    --~ common.dprint("End of function find_fire(%s) on tick %g. (Return: %s)", {
+      --~ common.print_name_id(turret),
+      --~ game.tick, ret or "nil"
+    --~ })
+    --~ return ret
+  --~ end
 
   ------------------------------------------------------------------------------------
   --                                       EOF                                      --

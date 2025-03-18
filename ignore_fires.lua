@@ -19,19 +19,29 @@ local patterns = {
 local function make_list(patterns)
   local list = {}
 
-  local fires = game and game.get_filtered_entity_prototypes({
-    { filter = "type", type = "fire" }
-  }) or {}
+  local fires
+  -- Control stage
+  if game then
+    fires = game.get_filtered_entity_prototypes({
+      { filter = "type", type = "fire" }
+    }) or {}
+  -- Data stage
+  elseif mods then
+    fires = data.raw.fire
+  end
 
   for fire, _ in pairs(fires) do
+log("fire: " .. tostring(fire) .. "\t_: " .. tostring(_))
+
     for p, pattern in pairs(patterns) do
       if string.match(fire, pattern) then
+log("Match found: " .. fire)
         list[fire] = true
         break
       end
     end
   end
-
+log("List: " .. serpent.block(list))
   return list
 end
 
