@@ -341,7 +341,6 @@ WT.show("target", target)
                 WT.dprint("Found " .. WT.print_name(turret) ..
                             "shooting at fire dummies -- leaving target_enemy_or_fire(" ..
                             tostring(turret_id) .. ") to start over again!")
-                -- (Temporarily disabled for 0.18.3)
                 --~ target_enemy_or_fire(turret_id)
                 return
 
@@ -353,8 +352,7 @@ WT.show("target", target)
 
                 turret.shooting_target = {nil}
                 WT.dprint("Reset -- calling target_enemy_or_fire(event) again!")
-                -- (Temporarily disabled for 0.18.3)
-                --~ target_enemy_or_fire(turret_id)
+                target_enemy_or_fire(turret_id)
 
             -- Turret attacks fire
             elseif target.name == WT.fire_dummy_name and target.type == WT.fire_dummy_type then
@@ -377,8 +375,7 @@ WT.show("enemies", enemies and table_size(enemies))
                             elseif not (target and target.valid and dummy_marks_fire(target)) then
                                 WT.dprint("No fires around " .. WT.print_name_id(target) .. ". Targetting new fire: " .. WT.print_name_id(enemy) .. ".")
                                 turret.shooting_target = enemy
-                                -- (Temporarily disabled for 0.18.3)
-                                --~ target_enemy_or_fire(turret.unit_number)
+                                target_enemy_or_fire(turret.unit_number)
                             end
                         end
                     end
@@ -509,9 +506,8 @@ WT.show("Returned from swap_turrets, got turret_id", turret_id)
                 -- Set next action tick
                 global.WT_turrets[turret_id].tick = event.tick + WT.action_delay
 
-                --~ -- Check targets
-                -- (Temporarily disabled for 0.18.3)
-                --~ target_enemy_or_fire(turret_id)
+                -- Check targets
+                target_enemy_or_fire(turret_id)
             -- This should never be reached!
             else
                 error("Something went wrong! Turret with id ".. tostring(turret_id) ..
@@ -530,15 +526,14 @@ local function turret_kill(event)
     local turret = event.cause
 
     WT.show("Killed entity", event.entity.name)
-    WT.show("Killer", turret and turret.name)
-    WT.show("Damage type", event.damage_type and event.damage_type.name)
+    WT.show("Killer", turret.name)
+    WT.show("Damage type", event.damage_type.name)
     -- Turret should look for a new target immediately if it has killed something
     if turret and turret.valid then
         -- Reset shooting_target! (It's still set to the killed entity, so target_enemy_or_fire
         -- won't do anything if we don't remove it.)
         turret.shooting_target = {nil}
-        -- (Temporarily disabled for 0.18.3)
-        --~ target_enemy_or_fire(turret.unit_number)
+        target_enemy_or_fire(turret.unit_number)
     end
 
     WT.dprint("End of function turret_kill(" .. WT.print_name_id(event.entity) .. ").")
@@ -603,17 +598,6 @@ local function on_built(event)
 
     local entity = event.created_entity
 
-    -- Filtering events still doesn't work, so this function could also be entered when
-    -- something other than our turrets were built. So, just filter once here as well!
-    --~ if entity and entity.valid then
-    if not (entity.type == WT.turret_type and
-            entity.name == WT.steam_turret_name or
-            entity.name == WT.water_turret_name)
-            then
-        WT.dprint("Other entity was created -- nothing to do!")
-        return
-    end
-
     if entity and entity.valid then
         global.WT_turrets[entity.unit_number] = {
             ["entity"] = entity,
@@ -663,13 +647,7 @@ local function on_remove(event)
 
     local entity = event.entity
 
-    -- Filtering events still doesn't work, so this function could also be entered when
-    -- something other than our turrets were built. So, just filter once here as well!
-    --~ if entity then
-    if entity and entity.valid and
-        (entity.name == WT.steam_turret_name or
-         entity.name == WT.water_turret_name) then
-
+    if entity then
         global.WT_turrets[entity.unit_number] = nil
         WT.dprint("Removed entity " .. entity.name .. " with id " .. entity.unit_number)
     end
@@ -827,16 +805,6 @@ WT.show("event.damage_type.name", event.damage_type and event.damage_type.name)
 WT.show("event.final_damage_amount", event.final_damage_amount)
 WT.show("event.force", event.force)
 
-WT.show("Correct damage type", not (event.damage_type == WT.steam_damage_name or event.damage_type == WT.water_damage_name))
-
-    -- Only act on our turrets' damage
-    -- (Needed for Factorio 0.17 only because it doesn't support event filtering by damage_type yet!)
-    -- (Better add this for 0.18 as well because event filtering doesn'work reliably yet.)
-    if not (event.damage_type == WT.steam_damage_name or event.damage_type == WT.water_damage_name) then
-        WT.dprint("Wrong damage type -- nothing to do!")
-        return
-    end
-
     -- Fire dummy was attacked -- remove it immediately if there are no fires around it!
     local entity = event.entity
     local turret = event.cause
@@ -849,8 +817,7 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
             -- Reset target if one of our turrets caused the damage
             if turret and turret.name == WT.water_turret_name then
                 turret.shooting_target = {nil}
-                -- (Temporarily disabled for 0.18.3)
-                --~ target_enemy_or_fire(turret.unit_number)
+                target_enemy_or_fire(turret.unit_number)
             end
         end
         return
@@ -881,8 +848,7 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
 
         turret.shooting_target = {nil}
         WT.dprint("Leaving function on_entity_damaged(" .. WT.print_name_id(entity) .. ") early -- resetting target for " .. WT.print_name_id(turret) .. ".")
-        -- (Temporarily disabled for 0.18.3)
-        --~ target_enemy_or_fire(turret.unit_number)
+        target_enemy_or_fire(turret.unit_number)
     end
 
     -- We damaged something that doesn't belong to us!
@@ -964,10 +930,9 @@ WT.show("damage_type", damage_type and damage_type.name)
         WT.dprint("Fire dummy died!")
         extinguish_fire(event)
         WT.dprint(tostring(cause.name) .. " extinguished fires. Looking for new target now.")
-        -- (Temporarily disabled for 0.18.3)
-        --~ if cause and cause.name == WT.water_turret_name then
-            --~ target_enemy_or_fire(cause.unit_number)
-        --~ end
+        if cause and cause.name == WT.water_turret_name then
+            target_enemy_or_fire(cause.unit_number)
+        end
     -- Turret killed something
     elseif damage_type == WT.steam_damage_name or damage_type == WT.water_damage_name or
             cause and (cause.name == WT.steam_turret_name or cause.name == WT.water_turret_name) then
@@ -1018,12 +983,12 @@ script.on_nth_tick(30*60*60, remove_fire_dummies)
 --                              (Thanks to eradicator!)                           --
 ------------------------------------------------------------------------------------
 setmetatable(_ENV,{
-  __newindex = function (self,key,value) --locked_global_write
+  __newindex=function (self,key,value) --locked_global_write
     error('\n\n[ER Global Lock] Forbidden global *write*:\n'
-      .. serpent.line{key = key or '<nil>',value = value or '<nil>'} .. '\n')
+      .. serpent.line{key=key or '<nil>',value=value or '<nil>'}..'\n')
     end,
   __index   =function (self,key) --locked_global_read
     error('\n\n[ER Global Lock] Forbidden global *read*:\n'
-      .. serpent.line{key = key or '<nil>'} .. '\n')
+      .. serpent.line{key=key or '<nil>'}..'\n')
     end ,
   })

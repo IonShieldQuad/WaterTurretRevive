@@ -64,7 +64,7 @@ fire_dummy.damaged_trigger_effect = {
     damage_type_filters = WT.water_damage_name,
     type = "create-trivial-smoke",
     smoke_name = "soft-fire-smoke",
-    color = {r=0.75, g=0.75, b=0.75, a=0.75}
+    color = {r = 0.75, g = 0.75, b = 0.75, a = 0.75}
 }
 fire_dummy.destroy_action = nil
 fire_dummy.dying_explosion = nil
@@ -583,7 +583,7 @@ waterstream.spine_animation =
       --~ filename = MOD_PIX .. "/flamethrower-fire-stream-spine.png",
       filename = MOD_PIX .. "/waterthrower-stream-spine-water.png",
       blend_mode = "additive",
-      --tint = {r=1, g=1, b=1, a=0.5},
+      --tint = {r = 1, g = 1, b = 1, a = 0.5},
       line_length = 4,
       width = 32,
       height = 18,

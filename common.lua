@@ -17,8 +17,8 @@ return function(mod_name)
   --~ common.fire_dummy_type = "simple-entity-with-force"
   common.fire_dummy_type = "combat-robot"
   common.fire_dummy_force = "WT-fire-dummy"
-  -- Extinguish fires in that radius around dummy if dummy dies
-  common.fire_dummy_radius = settings.startup["WT-fire-extinguish-radius"].value
+  --~ -- Extinguish fires in that radius around dummy if dummy dies
+  --~ common.fire_dummy_radius = settings.startup["WT-fire-extinguish-radius"].value
 
   -- Just define these to avoid tests not working because of a typo!
   common.spawner_type = "unit-spawner"
@@ -187,7 +187,7 @@ return function(mod_name)
     --~ rendering.destroy(global.WT_turrets[turret.unit_number].render_area)
   --~ end
   --~ global.WT_turrets[turret.unit_number].render_area = rendering.draw_rectangle{left_top = left_top, right_bottom = right_bottom, color = {r = 0.5, a = 0.001}, filled = true, surface = turret.surface}
-  --~ rendering.draw_circle{color= {g = 0.5, a=0.001}, radius = range, filled = true, target = turret.position, surface = turret.surface}
+  --~ rendering.draw_circle{color= {g = 0.5, a = 0.001}, radius = range, filled = true, target = turret.position, surface = turret.surface}
       return {left_top, right_bottom}
   end
 

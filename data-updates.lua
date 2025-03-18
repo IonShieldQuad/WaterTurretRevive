@@ -71,45 +71,45 @@ local function replace_resistance(table, damage)
   WT.dprint("End of function replace_resistance(" .. tostring(table) .. ", " .. serpent.block(damage) .. ")")
 end
 
---------------- ---------------------------------------------------------------------
---                Make spawners and turrets immune to our damages                 --
-------------------------------------------------------------------------------------
-for _, damage in ipairs({"WT-steam", "WT-water"}) do
-  local r = {
-        type = damage,
-        decrease = 0,
-        percent = 100
-  }
+--~ --------------- ---------------------------------------------------------------------
+--~ --                Make spawners and turrets immune to our damages                 --
+--~ ------------------------------------------------------------------------------------
+--~ for _, damage in ipairs({"WT-steam", "WT-water"}) do
+  --~ local r = {
+        --~ type = damage,
+        --~ decrease = 0,
+        --~ percent = 100
+  --~ }
 
-WT.dprint(serpent.block(r))
-  -- Spawners
-  if settings.startup["WT-immunity-spawner"].value then
+--~ WT.dprint(serpent.block(r))
+  --~ -- Spawners
+  --~ if settings.startup["WT-immunity-spawner"].value then
 
-    for _, spawner in pairs(data.raw[WT.spawner_type]) do
-      -- Add resistance to damage if
-      if can_insert(spawner.resistances, damage) then
-        table.insert(spawner.resistances, r)
-      else
-        replace_resistance(spawner.resistances, r)
-      end
-      --~ WT.show("Resistances of " .. tostring(spawner and spawner.name), spawner.resistances)
-    end
-  end
+    --~ for _, spawner in pairs(data.raw[WT.spawner_type]) do
+      --~ -- Add resistance to damage if
+      --~ if can_insert(spawner.resistances, damage) then
+        --~ table.insert(spawner.resistances, r)
+      --~ else
+        --~ replace_resistance(spawner.resistances, r)
+      --~ end
+      --WT.show("Resistances of " .. tostring(spawner and spawner.name), spawner.resistances)
+    --~ end
+  --~ end
 
-  -- Turrets
-  if settings.startup["WT-immunity-turret"].value then
-    for _, turret_type in pairs({WT.worm_type, WT.artillery_type}) do
-      for _, turret in pairs(data.raw[turret_type]) do
-        if can_insert(turret.resistances, damage) then
-          table.insert(turret.resistances, r)
-        else
-          replace_resistance(turret.resistances, r)
-        end
-        --~ WT.show("Resistances of " .. tostring(turret and turret.name), turret.resistances)
-      end
-    end
-  end
-end
+  --~ -- Turrets
+  --~ if settings.startup["WT-immunity-turret"].value then
+    --~ for _, turret_type in pairs({WT.worm_type, WT.artillery_type}) do
+      --~ for _, turret in pairs(data.raw[turret_type]) do
+        --~ if can_insert(turret.resistances, damage) then
+          --~ table.insert(turret.resistances, r)
+        --~ else
+          --~ replace_resistance(turret.resistances, r)
+        --~ end
+      --WT.show("Resistances of " .. tostring(turret and turret.name), turret.resistances)
+      --~ end
+    --~ end
+  --~ end
+--~ end
 
 
 ------------------------------------------------------------------------------------

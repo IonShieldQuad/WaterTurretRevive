@@ -63,4 +63,14 @@ Date: 2020-03-16
 
     - If "Picker Dollies" is installed and a steam/water turret is moved, the area the turret can cover is recalculated.
 
+---------------------------------------------------------------------------------------------------
+Version: 0.18.3
+Date: 2020-03-16
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Hopefully fixed a loop when turrets loaded with steam tried to extinguish fire.
+    - Fixed crash because of event filtering not working correctly: We still need to filter built/destroyed entities for those we want to act on *in* the functions, not only in the events calling them! (https://mods.factorio.com/mod/WaterTurret/discussion/5eb0587ed9aa04000c14c5ce)
+
   TODO:
