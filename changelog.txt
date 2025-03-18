@@ -92,17 +92,57 @@ Date: 2020-08-15
     - Added Russian localization. Thanks to TheLastEagle for providing the translations! :-)
 
 ---------------------------------------------------------------------------------------------------
-Version: 0.18.5
-Date: 2020-08-23
+Version: 1.0.0
+Date: 2020-10-05
   Uploaded by:
     - Pi-C
 
+  Info:
+    - Update for Factorio 1.0
+
   Bugfixes:
-    - Fixed crash when trying to target fires. (https://mods.factorio.com/mod/WaterTurret/discussion/5f3fa2465ef5ed76f3a149b2)
+    - Fixed typo in an event handler's filter condition that seems to have caused that the event never triggered.
+
+  Major features:
+    - Use trigger_target_types and attack_target_mask in the prototypes to make sure only the intended target types are attacked. As targetting is now done directly by the game, less Lua code has to run (we still need it to look for fires). This should save a lot of UPS!
+
+    - Use event filters for real. Now that they work even for sript_raised events, events will trigger only for the entities where they are meant to trigger. This should save some more UPS.
+
+    - Most prototypes of entities_with_health are now immune to damage from our water and steam turrets, so we don't have to restore health in case of damage by "friendly water". :-) Again, some UPS saved.
+
+    - Changed prototype of fire dummy from "combat-bot" (needed because it would self-expire) to "simple-entity-with-force". Having less combat bots active should save UPS again.
+
+    - Added a new turret type: the fire-extinguisher turret. It must be unlocked by a more advanced research, it's quite expensive to make, and it will only attack fires and acid splashes. However, it will look for targets in a full circle around its position, it will turn faster than water turrets, and it will extinguish fires faster as well. (Check out the start-up settings!)
+
+  Changes:
+    - Restored settings to toggle immunity of spawners and worms. Immunity is applied in the prototypes during the data stage, so this shouldn't add to UPS load.
+
+    - Added setting for prioritizing targets of water turrets loaded with water. Setting this to "fire" or "enemy" will give you more control over what the turrets attack first. If you're concerned about UPS, you should leave this at the default setting where the game will automatically choose the next target!
+
+    - Added setting to allow turrets to clean up acid spit of worms and spitters. If you didn't know yet (I didn't!), the acid splashes spitters and worms leave on the ground are actually based on the fire prototype! So they already would be attacked, but while it was a bug before, it's now a feature! :-D
+
+    - Added setting to change how much mobile targets are slowed down if they are hit by water or fire-extinguisher turrets.
+
+    - Added settings to change range of water and fire extinguisher turrets. (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)
+
+    - Added settings to change pressure of water and fire extinguisher turrets. Higher pressure increases the speed of the stream animation (so targets should be hit earlier) and damage amount, but also fluid consumption. (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)
+
+    - Added debug settings. If "Lua API global Variable Viewer (gvv)" is active, you can choose to enable it for this mod. You can also enable very verbose logging. (If there is any action, this will produce a lot of output continuously, and it will eventually slow down the game. So you shouldn't enable this unless you have a very good reason, e.g. if you want to help debugging this mod!)
+
+    - All prototypes of the following types are still vulnerable to steam and water damage, because electricity and water don't mix well: "accumulator", "boiler", "burner-generator", "electric-energy-interface", "electric-pole", "electric-turret", "generator", "power-switch". These prototypes won't be attacked on purpose, but may take splash damage.
+
+    - All prototypes of the following types are vulnerable to damage from steam and water and will be attacked. If water turrets loaded with water are set to prioritize enemies, they will look for enemies in this order: "character" (players), "spider-leg", "spider-vehicle", "car", "unit", "turret" (worms, optional), "unit-spawner" (optional).
+
+  Compatibility:
+    - Added compatibility with "Hardened Pipes". If this mod is active, you'll get the option to add hardened pipes to the recipe of the Fire-extinguisher turret. This will move the recipe unlock from "Flammables" to "Hardened pipes", so the recipe will be unlocked later. Also, producing these turrets will become a bit more of a logistic challenge (not telling anything here). On the plus side, hardened pipes are there for a reason: If they are used in the recipe, the turret will become resistant (or even immune) against several damage types!
+
+    - Added compatibility with "Rampant". It's spawners, turrets and units will now get the same immunities/resistances as their vanilla counterparts. Also, its acid splashes will be recognized.
+
+  Graphics:
+    - Reworked turret graphics. To save on file size, this mod comes with a minimum of graphics now and uses in-game coloring of the turrets. Thanks to darkfrei for explaining and demonstrating how to do this right! :-)
+
+  Modding:
+    - Added support for "Lua API global Variable Viewer (gvv)" by x2605. If that mod is active, you can inspect the global table of this mod at runtime -- quite useful for debugging! (https://mods.factorio.com/mod/gvv)
+
 
   TODO:
-    - Code clean-up:
-      - Event filtering is possible now for script_raised events as well
-      - Make fire dummy a simple-entity-with-force (Do we really need the dummy? Check fire prototype again!)
-      - Use target filtering in the turret prototypes instead of assigning targets per script!
-    - Could we get some options to tweak the turret ourselves according to our mod setup? Something like water pressure/speed, damage inflicted, max range, enemy slow-down factor, etc... (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)

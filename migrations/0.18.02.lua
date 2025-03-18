@@ -1,4 +1,4 @@
-local WT = require('common')()
+local WT = require('__WaterTurret__/common')("WaterTurret")
 
 ------------------------------------------------------------------------------------
 -- Register all existing water turrets
@@ -20,16 +20,16 @@ if not global.WT_turrets or table_size(global.WT_turrets) == 0 then
   for name, surface in pairs(game.surfaces) do
     -- Find all entities on surface
     for _, ent in ipairs({WT.steam_turret_name, WT.water_turret_name}) do
-      WT.dprint("Searching for " .. ent .. " on surface " .. name .. ".")
+      WT.dprint("Searching for %s on surface %s.", { ent, name })
 
       turrets = surface.find_entities_filtered{
         type = WT.turret_type,
         name = ent
       }
-----~ WT.dprint ("Found turrets: " .. serpent.block(turrets))
+----~ WT.show("Found turrets", turrets)
 
       -- Register turrets
-      for _, turret in pairs(turrets) do
+      for t, turret in pairs(turrets) do
         global.WT_turrets[turret.unit_number] = {
           -- Store the entity.
           ["entity"] = turret,
@@ -44,44 +44,44 @@ if not global.WT_turrets or table_size(global.WT_turrets) == 0 then
           ["tick"] = tick + math.floor(math.random() * 36000),
         }
 
-        WT.dprint(_ .. ": Registered " .. WT.print_name_id(turret) .. ".")
+        WT.dprint("%s: Registered %s.", { t, WT.print_name_id(turret) })
       end
-      WT.dprint("Done. (" .. ent .. ")")
+      WT.dprint("Done. (%s)", { ent })
     end
   end
-WT.dprint ("global: " .. serpent.block(global))
+WT.show("global", global)
 end
 
 -- Check that turrets can use the fluid they're hooked up to, exchange them otherwise.
 for id, turret in pairs(global.WT_turrets) do
-    local new_id = WT.swap_turrets(id)
+  local new_id = WT.swap_turrets(id)
 
-    if new_id and global.WT_turrets[new_id].entity.valid then
-        if new_id == id then
-            WT.dprint("Kept " .. WT.print_name_id(turret.entity) .. ".")
-        else
-            WT.dprint("Replaced turret " .. tostring(id) .. " with " ..
-                        WT.print_name_id(global.WT_turrets[new_id].entity) .. ".")
+  if new_id and global.WT_turrets[new_id].entity.valid then
+    if new_id == id then
+      WT.dprint("Kept %s.", { WT.print_name_id(turret.entity) })
+    else
+      WT.dprint("Replaced turret %s with %s.", {
+                id, WT.print_name_id(global.WT_turrets[new_id].entity)
+      })
 
-            -- Remove old turret from list
-            global.WT_turrets[id] = nil
-        end
+      -- Remove old turret from list
+      global.WT_turrets[id] = nil
     end
+  end
 end
 
 WT.dprint("Swapped turrets. Checking ticks!")
 for id, turret in pairs(global.WT_turrets) do
-    if turret.entity and turret.entity.valid then
-        WT.dprint("ID " .. tostring(id) .. ": " .. WT.print_name(turret.entity) ..
-                " acting on tick " .. turret.tick)
-    else
-        WT.dprint("ID " .. tostring(id) .. ": Turret doesn't exist!")
-    end
+  if turret.entity and turret.entity.valid then
+    WT.dprint("ID %s: %s acting on tick %g", { id, WT.print_name(turret.entity), turret.tick })
+  else
+    WT.dprint("ID %s: Turret doesn't exist!", { id })
+  end
 end
 
 -- Create force for fire dummy
-if not game.forces[WT.fire_dummy_force] then
-    game.create_force(WT.fire_dummy_force)
+if not game.forces[WT.dummy_force] then
+  game.create_force(WT.dummy_force)
 end
 
 WT.dprint("End of migration script \"0.18.02.lua\"")

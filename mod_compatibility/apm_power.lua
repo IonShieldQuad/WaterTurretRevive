@@ -1,4 +1,4 @@
-local WT = require('common')()
+local WT = require('__WaterTurret__/common')("WaterTurret")
 
 ------------------------------------------------------------------------------------
 --               Compatibility with "Amator Phasma's Coal & Steam"                --
