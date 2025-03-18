@@ -1,0 +1,21 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.0.2
+Date: 2020-02-18
+  Uploaded by:
+    - Pi-C
+
+  Changes:
+    - Increased the damage modifier for steam from 5 to 20. (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
+
+    - The water turret doesn't stun enemies any longer, but slows them down to half their speed. (https://mods.factorio.com/mod/WaterTurret/discussion/5dd38c66e7fd8b000c138705)
+
+    - No longer damage due to friendly fire: the water turret won't damage your own stuff! (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.1
+Date: 2019-08-10
+  Uploaded by:
+    - DellAquila
+
+  Info:
+    - Initial Release

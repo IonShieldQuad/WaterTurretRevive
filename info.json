@@ -1,19 +1,8 @@
 {
-  "name": "[internal-mod-name]",
-  "version": "0.0.0",
-  "title": "[MOD DISPLAY NAME]",
-  "author": "[YOUR MODS.FACTORIO.COM USERNAME]",
-  "homepage": "[HOMEPAGE/REPO URL]",
-  "description": "[SHORT DESCRIPTION]",
-  "factorio_version": "2.0",
-  "dependencies": [
-    "base"
-  ],
-  "quality_required": false,
-  "rail_bridges_required": false,
-  "space_travel_required": false,
-  "spoiling_required": false,
-  "freezing_required": false,
-  "segmented_units_required": false,
-  "expansion_shaders_required": false
+  "name": "WaterTurret",
+  "version": "0.0.2",
+  "title": "Water Turret",
+  "author": "DellAquila, Pi-C",
+  "factorio_version": "0.17",
+  "description": "An early game Water Thrower that does minimal damage but slows down the enemies. You can use steam for extra damage."
 }
