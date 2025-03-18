@@ -117,6 +117,7 @@ end
 ------------------------------------------------------------------------------------
 local time_to_live = 0
 for _, fire in pairs(data.raw["fire"]) do
+WT.show("fire.name", fire.name)
 WT.show("fire.maximum_lifetime", fire.maximum_lifetime)
   local t = fire.maximum_lifetime or 0
   time_to_live = ( t > time_to_live) and t or time_to_live

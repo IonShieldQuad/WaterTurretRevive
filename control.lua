@@ -474,7 +474,9 @@ WT.show(tostring(WT.print_name_id(turret) .. ".shooting_target"), turret.shootin
     -- Search for fires to attack if turret is water turret
     if turret.name == WT.water_turret_name then
 --~ WT.show("global.WT_turrets", global.WT_turrets)
-        local dummy_list = global.WT_turrets[turret.unit_number].fire_dummies or {}
+        global.WT_turrets[turret.unit_number].fire_dummies =
+                              global.WT_turrets[turret.unit_number].fire_dummies or {}
+        local dummy_list = global.WT_turrets[turret.unit_number].fire_dummies
         -- Prune list
         for d, dummy in ipairs(dummy_list) do
             if not dummy_marks_fire(dummy) then

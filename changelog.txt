@@ -91,5 +91,18 @@ Date: 2020-08-15
   Locale:
     - Added Russian localization. Thanks to TheLastEagle for providing the translations! :-)
 
+---------------------------------------------------------------------------------------------------
+Version: 0.18.5
+Date: 2020-08-23
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed crash when trying to target fires. (https://mods.factorio.com/mod/WaterTurret/discussion/5f3fa2465ef5ed76f3a149b2)
+
   TODO:
+    - Code clean-up:
+      - Event filtering is possible now for script_raised events as well
+      - Make fire dummy a simple-entity-with-force (Do we really need the dummy? Check fire prototype again!)
+      - Use target filtering in the turret prototypes instead of assigning targets per script!
     - Could we get some options to tweak the turret ourselves according to our mod setup? Something like water pressure/speed, damage inflicted, max range, enemy slow-down factor, etc... (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)
