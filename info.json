@@ -1,8 +1,8 @@
 {
   "name": "WaterTurret",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "title": "Water Turret",
-  "author": "DellAquila",
+  "author": "DellAquila, Pi-C",
   "factorio_version": "0.17",
-  "description": "An early game Water Thrower that does minimal damage but slow down the enemies. You can use steam for extra damage."
+  "description": "An early game Water Thrower that does minimal damage but slows down the enemies. You can use steam for extra damage."
 }

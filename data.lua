@@ -2,8 +2,10 @@ local wateritem = util.table.deepcopy(data.raw["item"]["flamethrower-turret"])
 wateritem.name = "water-turret"
 wateritem.place_result = "water-turret"
 wateritem.icon = "__WaterTurret__/graphics/flamethrower-turret.png"
+wateritem.icon_size = 32
+wateritem.icon_mipmaps = 1
 data:extend({wateritem})
-  
+
 local waterrecipe = util.table.deepcopy(data.raw["recipe"]["flamethrower-turret"])
 waterrecipe.name = "water-turret"
 waterrecipe.enabled = true
@@ -16,10 +18,12 @@ waterrecipe.ingredients =
     }
 waterrecipe.result = "water-turret"
 data:extend({waterrecipe})
-    
+
 local waterentity = util.table.deepcopy(data.raw["fluid-turret"]["flamethrower-turret"])
 waterentity.name = "water-turret"
 waterentity.icon = "__WaterTurret__/graphics/flamethrower-turret.png"
+waterentity.icon_size = 32
+waterentity.icon_mipmaps = 1
 waterentity.minable = {mining_time = 0.5, result = "water-turret"}
 waterentity.max_health = 900
 waterentity.fluid_buffer_size = 200
@@ -384,7 +388,8 @@ waterentity.attack_parameters =
       fluids =
       {
         {type = "water"},
-        {type = "steam", damage_modifier = 5}
+        --~ {type = "steam", damage_modifier = 5}
+        {type = "steam", damage_modifier = 20}
       },
       fluid_consumption = 1,
 
@@ -464,7 +469,8 @@ waterstream.action =
           {
             {
               type = "create-sticker",
-              sticker = "stun-sticker"
+              --~ sticker = "stun-sticker"
+              sticker = "slowdown-sticker"
             },
             {
               type = "damage",
@@ -507,5 +513,5 @@ waterstream.particle =
       height = 64,
       frame_count = 32,
       line_length = 8
-    }  
+    }
 data:extend({waterstream})
