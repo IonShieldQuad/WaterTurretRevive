@@ -285,11 +285,13 @@ WT.dprint("Removed dummy " .. d_index .. " from global.fire_dummies!")
 
   -- Destroy entities
   if fire and fire.valid then
+    fire.surface.create_entity{position = fire.position, name = WT.burnt_patch }
     fire.destroy()
 WT.show("DESTROYED FIRE", f_index)
   end
 
   if dummy and dummy.valid then
+    dummy.surface.create_entity{position = dummy.position, name = WT.burnt_patch }
     dummy.destroy()
 WT.show("DESTROYED DUMMY", d_index)
   end
@@ -758,9 +760,11 @@ end
 -- Init
 local function init()
   WT.dprint("Entered function init().")
-game.check_prototype_translations()
+  if WT.debug_in_log then
+    game.check_prototype_translations()
+  end
 
-local dummy = game.entity_prototypes[WT.fire_dummy_name]
+--~ local dummy = game.entity_prototypes[WT.fire_dummy_name]
 
 --~ WT.dprint("Fire dummy name: %s\tresistances: %s\thealth: %s\ttrigger_target_mask: %s", {dummy.name, dummy.resistances, dummy.max_health, dummy.trigger_target_mask})
 
@@ -861,7 +865,7 @@ WT.show("Number of turrets", table_size(global.WT_turrets))
   if  remote.interfaces["PickerDollies"] and
       remote.interfaces["PickerDollies"]["dolly_moved_entity_id"] then
 
-    script.on_event(remote.call("PickerDollies", "dolly_moved_entity_id"), function()
+    script.on_event(remote.call("PickerDollies", "dolly_moved_entity_id"), function(event)
       WT.dprint("Entered event script for dolly_moved_entity_id(%s).", { event }, "line")
       on_moved(event)
       WT.dprint("End of event script for dolly_moved_entity_id(%s).", { event }, "line")

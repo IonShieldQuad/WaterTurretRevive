@@ -158,7 +158,7 @@ Date: 2020-10-05
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.2
-Date: 2020-10-14
+Date: 2020-11-16
   Uploaded by:
     - Pi-C
 
@@ -191,6 +191,24 @@ Date: 2020-10-14
 
   Localization:
     - Added French locale. Thanks a lot to Fr_Dae for providing the translation!
+
+
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.3
+Date: 2020-11-22
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed a crash with "Picker Dollies". (https://mods.factorio.com/mod/WaterTurret/discussion/5fb449c81c89be88691de72a)
+    - Fixed that acid splashes would be marked with a fire dummy (giving the illusion of it burning because of the animation) if "Turrets clean up acid splashes" was turned off. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)
+    - Fixed that the health bar would be visible when a dummy was damaged.  (https://forums.factorio.com/viewtopic.php?f=25&t=91619)
+
+  Changes:
+    - Replaced the flame animation on top of fire dummies with a real fire. The animation had two disadvantages: It didn't look right, and the "fire" wouldn't do any damage because it was just a visual indicator. So you'd better watch out -- if you get too close to fire, it will hurt you now!
+    - Removed some log spam. It really got excessive with mods that create lots of new unit types  ("Rampant", "Natural Evolution" etc.).
+    - Using game.check_prototype_translations() helps during mod development, but doesn't make much sense in normal games (especially as it was run not only when a new game was started, but in responce to a number of events). Now, prototype translations will only be checked if debugging is turned on -- no log spam and no time wasted on running the check unless it may be actually useful.
 
   TODO:
     - Acid and fire dummies are attacked by PLD -- not sure yet what to do about it. (https://mods.factorio.com/mod/WaterTurret/discussion/5f85f94eee4cd5237620b0ce)

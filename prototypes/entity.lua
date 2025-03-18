@@ -94,9 +94,81 @@ data:extend({sticker})
 
 
 ------------------------------------------------------------------------------------
+--                                      Fire                                      --
+-- Create a fire that's created whenever a fire is spawned. It will burn for its  --
+-- complete TTL and not have the burned-patch phase, so that turrets won't seem   --
+-- to attack empty spots on the ground. We used a fire animation placed on top of --
+-- the dummy before, but this was only fake, without doing fire damage.           --
+------------------------------------------------------------------------------------
+local WT_fire = table.deepcopy(data.raw.fire["fire-flame"])
+WT.show("WT_fire.maximum_lifetime", WT_fire.maximum_lifetime)
+WT.show("WT_fire.burnt_patch_lifetime", WT_fire.burnt_patch_lifetime)
+WT_fire.name = WT.fake_fire_name
+--~ WT_fire.initial_lifetime = WT_fire.maximum_lifetime + WT_fire.burnt_patch_lifetime
+WT_fire.initial_lifetime = WT_fire.maximum_lifetime
+--~ WT_fire.maximum_lifetime = WT_fire.maximum_lifetime + WT_fire.burnt_patch_lifetime
+WT_fire.burnt_patch_lifetime = 0
+WT_fire.on_fuel_added_action = nil
+
+data:extend({WT_fire})
+
+WT.show("WT_fire.burnt_patch_pictures", WT_fire.burnt_patch_pictures)
+------------------------------------------------------------------------------------
 --                                     Dummies                                    --
 ------------------------------------------------------------------------------------
 
+
+-- Corpse mimics the burnt patch of the fire
+local burnt_patch = {
+  type = "corpse",
+  name = WT.burnt_patch,
+  icon = "__base__/graphics/icons/small-scorchmark.png",
+  --~ icon_size = 32,
+  icon_size = 64,
+  flags = {"placeable-neutral", "not-on-map", "placeable-off-grid"},
+  collision_box = {{-1.5, -1.5}, {1.5, 1.5}},
+  collision_mask = {"doodad-layer", "not-colliding-with-itself"},
+  selection_box = {{-1, -1}, {1, 1}},
+  selectable_in_game = false,
+  time_before_removed = 60 * 60 * 3, -- 3 minutes
+  final_render_layer = "ground-patch-higher2",
+  subgroup = "remnants",
+  order="d[remnants]-b[scorchmark]-a[small]",
+      --blend_mode="additive-soft",
+  animation = {
+    width = 115,
+    height = 56,
+    frame_count = 1,
+    direction_count = 1,
+    filename = MOD_PIX .. "new_burnt_patch.png",
+    variation_count = 9
+  },
+  ground_patch = {
+    sheet = {
+      width = 115,
+      height = 56,
+      frame_count = 1,
+      direction_count = 1,
+      filename = MOD_PIX .. "new_burnt_patch.png",
+      variation_count = 9,
+    }
+  },
+  ground_patch_higher = {
+    sheet = {
+      width = 115,
+      height = 56,
+      frame_count = 1,
+      direction_count = 1,
+      filename = MOD_PIX .. "new_burnt_patch.png",
+      variation_count = 9,
+      blend_mode = "normal"
+    }
+  }
+}
+data:extend({ burnt_patch })
+
+
+------------------------------------------------------------------------------------
 -- Fire dummy
 --~ local fire_dummy = {
   --~ type = WT.dummy_type,
@@ -129,7 +201,6 @@ data:extend({sticker})
 --~ }
 local fire_dummy = util.table.deepcopy(data.raw[WT.dummy_type]["defender"])
 
---~ WT.show("Defender", data.raw[WT.dummy_type]["defender"])
 fire_dummy.name = WT.fire_dummy_name
 
 fire_dummy.attack_parameters.ammo_type.action.action_delivery = nil
@@ -167,6 +238,13 @@ fire_dummy.water_reflection = nil
 fire_dummy.working_sound = nil
 fire_dummy.trigger_target_mask = { WT.trigger_target_fire_dummy }
 
+fire_dummy.selectable_in_game = WT.debug_in_log
+fire_dummy.allow_copy_paste = false
+fire_dummy.create_ghost_on_death = false
+fire_dummy.alert_when_damaged = false
+-- Health bar will be invisible if selection_box is {{0,0},{0,0}}!
+fire_dummy.selection_box = {{0,0},{0,0}}
+
 --~ WT.show("fire pictures", data.raw["fire"]["fire-flame"].pictures)
 for _, picture in ipairs({"idle", "shadow_idle", "in_motion", "shadow_in_motion"}) do
     fire_dummy[picture] = {
@@ -176,12 +254,28 @@ for _, picture in ipairs({"idle", "shadow_idle", "in_motion", "shadow_in_motion"
         size = 64,
         mipmap_count = 1,
     }
-
 --~ -- WT.show(picture, fire_dummy[picture])
 end
 
+-- Create fake fire when dummy is placed
+fire_dummy.created_effect = {
+  type = "direct",
+  action_delivery = {
+    type = "instant",
+    target_effects = {
+      type = "create-entity",
+      entity_name = WT.fake_fire_name,
+      --~ -- ignore_collision_condition = true,
+      trigger_created_entity = false,
+      offset_deviation = { {0, 0}, {0, 0} },
+      offsets ={ {0, 0} }
+    }
+  }
+}
 data:extend({ fire_dummy })
 
+
+------------------------------------------------------------------------------------
 -- Acid dummy
 if WT.clean_acid_splashes then
   local acid_dummy = table.deepcopy(data.raw[WT.dummy_type][WT.fire_dummy_name])
@@ -201,6 +295,8 @@ if WT.clean_acid_splashes then
 
   --~ WT.show(picture, fire_dummy[picture])
   end
+  acid_dummy.created_effect = nil
+
   data:extend({ acid_dummy })
 WT.dprint("acid-dummy: %s", { data.raw[WT.dummy_type][WT.acid_dummy_name] })
 end
@@ -211,6 +307,7 @@ end
 --                   Images are changed at the end of the file!                   --
 ------------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------------
 -- Remnants
 local waterentity_remnants = util.table.deepcopy(data.raw.corpse["flamethrower-turret-remnants"])
 
@@ -222,6 +319,8 @@ waterentity_remnants.icons = {
 }
 waterentity_remnants.icon_size = 64
 
+
+------------------------------------------------------------------------------------
 -- Entity
 local waterentity = util.table.deepcopy(data.raw[WT.turret_type]["flamethrower-turret"])
 
@@ -316,6 +415,7 @@ waterentity.attack_parameters = {
 data:extend({waterentity, waterentity_remnants})
 
 
+------------------------------------------------------------------------------------
 -- Stream
 
 --~ local water_color ={r = 0.000, g = 0.286, b = 0.949, a = .5}
@@ -413,6 +513,8 @@ data:extend({waterstream})
 --                   Images are changed at the end of the file!                   --
 ------------------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------------------
 -- Entity
 local steamentity = table.deepcopy(data.raw[WT.turret_type][WT.water_turret_name])
 local steamstream = table.deepcopy(data.raw["stream"]["water-stream"])
@@ -438,6 +540,7 @@ steamentity.attack_parameters.ammo_type = {
 }
 
 
+------------------------------------------------------------------------------------
 -- Stream
 steamstream.name = "steam-stream"
 --~ steamstream.spine_animation.filename = MOD_PIX .. "water-turret-stream-spine-steam.png"
@@ -460,6 +563,8 @@ data:extend({steamentity, steamstream})
 --                   Images are changed at the end of the file!                   --
 ------------------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------------------
 -- Remnants
 local extinguisherentity_remnants = table.deepcopy(data.raw.corpse["flamethrower-turret-remnants"])
 extinguisherentity_remnants.name = WT.extinguisher_turret_name .. "-remnants"
@@ -469,6 +574,7 @@ extinguisherentity_remnants.icons = {
   }
 
 
+------------------------------------------------------------------------------------
 -- Entity
 local extinguisherentity = table.deepcopy(data.raw[WT.turret_type][WT.water_turret_name])
 extinguisherentity.name = WT.extinguisher_turret_name
@@ -520,16 +626,16 @@ extinguisherentity.attack_parameters.ammo_type = {
 
 ------------------------------------------------------------------------------------
 -- Bonuses
-------------------------------------------------------------------------------------
+
 -- 360° rotation
 extinguisherentity.attack_parameters.turn_range = 1
 -- Shoot twice per tick
 extinguisherentity.attack_parameters.cooldown = 0.5
 -- Higher rotation speed
 extinguisherentity.rotation_speed = extinguisherentity.rotation_speed * 1.5
+
+
 ------------------------------------------------------------------------------------
-
-
 -- Stream
 local extinguisherstream = table.deepcopy(data.raw["stream"]["water-stream"])
 extinguisherstream.name = "extinguisher-stream"
@@ -555,11 +661,14 @@ data:extend({extinguisherentity, extinguisherentity_remnants, extinguisherstream
 ------------------------------------------------------------------------------------
 
 
+------------------------------------------------------------------------------------
 -- Entity
 local extinguisherwaterentity = table.deepcopy(data.raw[WT.turret_type][WT.extinguisher_turret_name])
 extinguisherwaterentity.name = WT.extinguisher_turret_water_name
 extinguisherwaterentity.attack_parameters.ammo_type.action.action_delivery.stream = "extinguisherwater-stream"
 
+
+------------------------------------------------------------------------------------
 -- Stream
 local extinguisherwaterstream = table.deepcopy(data.raw["stream"]["extinguisher-stream"])
 extinguisherwaterstream.name = "extinguisherwater-stream"
@@ -572,6 +681,8 @@ data:extend({extinguisherwaterentity, extinguisherwaterstream})
 --                                Coloring turrets                                --
 ------------------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------------------
 -- Color remnants
 local function color_remnants(entity, tint)
   local layer = table.deepcopy(data.raw.corpse["flamethrower-turret-remnants"].animation.layers[1])
@@ -602,6 +713,8 @@ local function color_layer(layers, image, tint)
   table.insert(layers, 2, new_layer)
 end
 
+
+------------------------------------------------------------------------------------
 --Color turret base
 local function color_base(turret, tint)
 
@@ -619,6 +732,7 @@ color_base(data.raw[WT.turret_type][WT.extinguisher_turret_water_name], WT.extin
                     --~ data.raw[WT.turret_type][WT.extinguisher_turret_name].base_picture)
 
 
+------------------------------------------------------------------------------------
 -- Color rotatable gun
 local function color_gun(turret, tint)
   local function color(layer, image, tint)

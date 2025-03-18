@@ -233,9 +233,15 @@ return function(mod_name)
   }
   common.dummy_list = common.make_name_list(common.dummy_types)
 
-  -- Animations rendered on dummy position
-  common.dummy_animation_name = "WT-fire-dummy-animation"
+  -- Removed animation: We place a real fire now as created_effect of
+  -- the fire-dummy prototype!
+  --~ -- Animations rendered on dummy position
+  --~ common.dummy_animation_name = "WT-fire-dummy-animation"
 
+  -- Fire placed on top of normal fires
+  common.fake_fire_name = "WT-fire"
+  -- Burnt patch placed after fire has been extinguished or is expired
+  common.burnt_patch = "WT-fake-fire-burnt-patch"
 
    -- This are functions that return an array!
   common.enemies = prototypes.attack
@@ -822,16 +828,18 @@ common.dprint("Target position is not in range!")
     local dummy_id = dummy.unit_number
 
     dummy.active = false
-    if dummy.name == common.fire_dummy_name then
-      local anim = rendering.draw_animation({
-        animation = common.dummy_animation_name,
-        target = dummy,
-        surface = dummy.surface,
-        render_layer = "ground-patch",
-        forces = {"player"}
-      })
-common.show("anim", anim)
-    end
+    -- Removed animation: We place a real fire now as created_effect of
+    -- the fire-dummy prototype!
+    --~ if dummy.name == common.fire_dummy_name then
+      --~ local anim = rendering.draw_animation({
+        --~ animation = common.dummy_animation_name,
+        --~ target = dummy,
+        --~ surface = dummy.surface,
+        --~ render_layer = "ground-patch",
+        --~ forces = {"player"}
+      --~ })
+--~ common.show("anim", anim)
+    --~ end
     dummy.force = common.dummy_force
 --~ local x = dummy.position.x or dummy.position[1]
 --~ local y = dummy.position.y or dummy.position[2]

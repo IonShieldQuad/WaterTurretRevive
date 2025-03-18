@@ -31,17 +31,17 @@ local function make_list(patterns)
   end
 
   for fire, _ in pairs(fires) do
-log("fire: " .. tostring(fire) .. "\t_: " .. tostring(_))
+--~ log("fire: " .. tostring(fire) .. "\t_: " .. tostring(_))
 
     for p, pattern in pairs(patterns) do
       if string.match(fire, pattern) then
-log("Match found: " .. fire)
+--~ log("Match found: " .. fire)
         list[fire] = true
         break
       end
     end
   end
-log("List: " .. serpent.block(list))
+--~ log("List: " .. serpent.block(list))
   return list
 end
 

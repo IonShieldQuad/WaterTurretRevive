@@ -275,28 +275,38 @@ end
 -- Let dummies be placed when a fire is created
 ------------------------------------------------------------------------------------
 local acids = acid.get_acid()
+local ignore = acid.get_ignorelist()
 local fires = data.raw.fire
 
-for name, entity in pairs(fires) do
-  entity.created_effect = {
-    type = "direct",
-    action_delivery = {
-      type = "instant",
-      target_effects = {
-        type = "create-entity",
-        entity_name = acids[name] and WT.acid_dummy_name or WT.fire_dummy_name,
-        --~ ignore_collision_condition = true,
-        trigger_created_entity = true,
-        offset_deviation = {{0, 0}, {0, 0}},
-        offsets ={ {0, 0} }
+WT.show("Clean acid splashes", settings.startup["WT-turrets_clean_acid"].value)
+WT.show("acids", acids)
+WT.show("ignore", ignore)
 
-      }
+for name, entity in pairs(fires) do
+  if not ignore[entity.name] and name ~= WT.fake_fire_name then
+    WT.show("Adding created_effect to", entity.name)
+
+    entity.created_effect = {
+      type = "direct",
+      action_delivery = {
+        type = "instant",
+        target_effects = {
+          type = "create-entity",
+          entity_name = acids[name] and WT.acid_dummy_name or WT.fire_dummy_name,
+          --~ -- ignore_collision_condition = true,
+          trigger_created_entity = true,
+          offset_deviation = {{0, 0}, {0, 0}},
+          offsets ={ {0, 0} }
+        }
+      },
     }
-  }
+  else
+    WT.show("Ignore", entity.name)
+  end
 WT.show("entity.flags", entity.flags)
-  entity.selectable_in_game = true
-  --~ entity.spawn_entity = acids[name] and WT.acid_dummy_name or WT.fire_dummy_name
-  WT.dprint("created_effect for %s: %s", {name, entity.created_effect})
+  --~ entity.selectable_in_game = true
+  entity.selectable_in_game = WT.debug_in_log
+  WT.dprint("created_effect for %s: %s", {name, entity.created_effect or "no effect"})
 end
 
 

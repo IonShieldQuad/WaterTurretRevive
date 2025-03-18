@@ -2,6 +2,10 @@
 -- turrets shoot at a dummy that apparently doesn't mark fire (could be in the
 -- second phase, where the flame isn't visible anymore)
 
+-- This won't be used in version 1.0.3! We're using real fire now, created whenever
+-- a fire dummy is spawned! I'll keep this file for now, let's see if the new
+-- method has any unintended side effects.
+
 --~ log("fire-flame: " .. serpent.block(data.raw.fire["fire-flame"]))
 
 local animation_name = "WT-fire-dummy-animation"

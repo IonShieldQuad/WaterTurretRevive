@@ -8,7 +8,7 @@ local prototypes_with_health = {}
 -- that can be called when needed.
 
 prototypes_with_health.attack = function(entity_type)
-log("Entered function attack(" .. serpent.line(entity_type) .. ")")
+--~ log("Entered function attack(" .. serpent.line(entity_type) .. ")")
 
   if not entity_type and type(entity_type) == "string" then
     error(serpent.line(entity_type) .. " is not a valid argument! (String expected)")
@@ -35,7 +35,7 @@ log("Entered function attack(" .. serpent.line(entity_type) .. ")")
         ret[values.order] = entities
       end
     end
-log("These entities may be attacked: " .. serpent.block(ret))
+--~ log("These entities may be attacked: " .. serpent.block(ret))
 
   -- Check if entities of a particular prototype should be attacked
   else
