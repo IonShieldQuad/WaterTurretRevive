@@ -145,4 +145,14 @@ Date: 2020-10-05
     - Added support for "Lua API global Variable Viewer (gvv)" by x2605. If that mod is active, you can inspect the global table of this mod at runtime -- quite useful for debugging! (https://mods.factorio.com/mod/gvv)
 
 
+---------------------------------------------------------------------------------------------------
+Version: 1.0.1
+Date: 2020-10-05
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed a crash when turrets tried to target a fire that was still in their list but didn't exist anymore.
+
+
   TODO:

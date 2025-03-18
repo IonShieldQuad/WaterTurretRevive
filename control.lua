@@ -376,11 +376,20 @@ WT.dprint("Target of %s: %s\tDummies in list: %g", {
 --~ })
 --~ WT.show("Dummies in list", global.WT_turrets[turret.unit_number].fire_dummies)
 
-    local target = next(global.WT_turrets[turret.unit_number].fire_dummies)
-    target = target and global.fire_dummies[target].dummy_entity
-    if target and target.valid then
-      WT.show("target", WT.print_name_id(target))
-      turret.shooting_target = target
+    --~ local target = next(global.WT_turrets[turret.unit_number].fire_dummies)
+    --~ target = target and global.fire_dummies[target] and global.fire_dummies[target].dummy_entity
+    --~ if target and target.valid then
+      --~ WT.show("target", WT.print_name_id(target))
+      --~ turret.shooting_target = target
+    --~ end
+    local target
+    for d, dummy in pairs(global.WT_turrets[turret.unit_number].fire_dummies) do
+      target = dummy and global.fire_dummies[dummy] and global.fire_dummies[dummy].dummy_entity
+      if target and target.valid then
+        WT.show("target", WT.print_name_id(target))
+        turret.shooting_target = target
+        break
+      end
     end
   end
   WT.dprint("End of function target_enemy_or_fire(%s) on tick %s.", {
