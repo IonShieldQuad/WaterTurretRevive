@@ -1,10 +1,15 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.0.2
+Version: 0.18.1
 Date: 2020-02-18
   Uploaded by:
     - Pi-C
 
+  Info:
+    - Update for Factorio 0.18
+
   Changes:
+    - Changed versioning scheme -- it's better if the mod version reflects the Factorio version it's compatible with.
+
     - Increased the damage modifier for steam from 5 to 20. (https://mods.factorio.com/mod/WaterTurret/discussion/5d4f020ce30036000b9545cb)
 
     - The water turret doesn't stun enemies any longer, but slows them down to half their speed. (https://mods.factorio.com/mod/WaterTurret/discussion/5dd38c66e7fd8b000c138705)
