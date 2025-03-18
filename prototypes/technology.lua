@@ -41,7 +41,7 @@ data:extend({
 
 
 -- Add recipe unlock for steam/water turrets to technology "turrets"
-local unlock_tech = data.raw.technology["turrets"]
+local unlock_tech = data.raw.technology["gun-turret"]
 if not WT.unlocked_already(unlock_tech, WT.water_turret_name) then
 
   unlock_tech.effects = unlock_tech.effects  or {}

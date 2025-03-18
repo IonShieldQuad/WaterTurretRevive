@@ -13,7 +13,8 @@ local old_dummy_type = "simple-entity-with-force"
 log("global.fire_dummies table: " .. serpent.block(global.fire_dummies))
 -- Make sure we have the global tables initialized!
 global = global or {}
-global.dummy_positions = {}
+global.dummy_positions = global.dummy_positions or {}
+global.WT_turrets = global.WT_turrets or {}
 --~ global.fire_positions = {}
 
 -- Discard data from old lists
@@ -74,7 +75,7 @@ for s, surface in pairs(game.surfaces) do
     dummy.destroy()
     cnt = cnt + 1
   end
-log("Removed " .. tostring(cnt or 0) .. "dummies.")
+log("Removed " .. tostring(cnt or 0) .. " dummies.")
 
 
   -- Search for fires on all surfaces
