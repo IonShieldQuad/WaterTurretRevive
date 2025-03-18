@@ -71,7 +71,7 @@ local function replace_resistance(table, damage)
   WT.dprint("End of function replace_resistance(" .. tostring(table) .. ", " .. serpent.block(damage) .. ")")
 end
 
---~ --------------- ---------------------------------------------------------------------
+--~ ------------------------------------------------------------------------------------
 --~ --                Make spawners and turrets immune to our damages                 --
 --~ ------------------------------------------------------------------------------------
 --~ for _, damage in ipairs({"WT-steam", "WT-water"}) do
@@ -132,3 +132,6 @@ WT.show("Fire dummy", data.raw[WT.fire_dummy_type][WT.fire_dummy_name])
 
 -- "Amator Phasma's Coal & Steam"
 require('mod_compatibility.apm_power')
+
+
+log("Recipe Water turret: " .. serpent.block(data.raw.recipe[WT.water_turret_name]))

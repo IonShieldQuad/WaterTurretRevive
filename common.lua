@@ -17,8 +17,8 @@ return function(mod_name)
   --~ common.fire_dummy_type = "simple-entity-with-force"
   common.fire_dummy_type = "combat-robot"
   common.fire_dummy_force = "WT-fire-dummy"
-  --~ -- Extinguish fires in that radius around dummy if dummy dies
-  --~ common.fire_dummy_radius = settings.startup["WT-fire-extinguish-radius"].value
+  -- Extinguish fires in that radius around dummy if dummy dies
+  common.fire_dummy_radius = settings.startup["WT-fire-extinguish-radius"].value
 
   -- Just define these to avoid tests not working because of a typo!
   common.spawner_type = "unit-spawner"
@@ -35,11 +35,14 @@ return function(mod_name)
   if (game and game.active_mods["_debug"]) or (not game and mods and mods["_debug"]) then
     common.debug_in_log = true
   end
---~ log("debug_in_log: " .. tostring(common.debug_in_log))
+
   -- Output debugging text
   common.dprint = function(msg)
     if common.debug_in_log then
       log({"", msg})
+      if game then
+        game.print({"", msg})
+      end
     end
   end
 
@@ -239,7 +242,9 @@ common.dprint(serpent.block(global.WT_turrets[id]))
     ------------------------------------------------------------------------------------
     --                        Leave early if everything is OK                         --
     ------------------------------------------------------------------------------------
-    -- Turret is not connected to a pipe -- wait until it is hooked up and useful!
+    -- Turret is not connected to a pipe and doesn't contain fluid -- wait until it is
+    -- hooked up and useful!
+common.show("turret.get_fluid_contents()", turret.get_fluid_contents())
     if not neighbours then
       common.dprint("Leave early: " .. common.print_name_id(turret) .. " is not hooked up!")
       return id
@@ -291,13 +296,13 @@ common.dprint(serpent.block(global.WT_turrets[id]))
                     tostring(input.steam and "steam" or input.water and "water"))
       return id
     -- Connected to 1 pipe filled with same fluid as turret
-    elseif (
-            (input and input.steam and turret.name == common.steam_turret_name) or
-            (input and input.water and turret.name == common.water_turret_name)
-          ) or (
-            (output and output.steam and turret.name == common.steam_turret_name) or
-            (output and output.water and turret.name == common.water_turret_name)
-          ) then
+    elseif  (
+              (input and input.steam and turret.name == common.steam_turret_name) or
+              (input and input.water and turret.name == common.water_turret_name)
+            ) or (
+              (output and output.steam and turret.name == common.steam_turret_name) or
+              (output and output.water and turret.name == common.water_turret_name)
+            ) then
       common.dprint("Leave early: " .. common.print_name_id(turret) .. " is connected to " ..
                     tostring(
                       (input and input.steam and "steam") or

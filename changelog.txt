@@ -73,4 +73,23 @@ Date: 2020-03-16
     - Hopefully fixed a loop when turrets loaded with steam tried to extinguish fire.
     - Fixed crash because of event filtering not working correctly: We still need to filter built/destroyed entities for those we want to act on *in* the functions, not only in the events calling them! (https://mods.factorio.com/mod/WaterTurret/discussion/5eb0587ed9aa04000c14c5ce)
 
+---------------------------------------------------------------------------------------------------
+Version: 0.18.4
+Date: 2020-08-15
+  Uploaded by:
+    - Pi-C
+
+  Bugfixes:
+    - Fixed that targetting function never was called, so water turrets would never target fires. (https://mods.factorio.com/mod/WaterTurret/discussion/5ed169a82b642b000e80cf98)
+    - Fixed that steam temperature didn't affect the amount of damage. (https://mods.factorio.com/mod/WaterTurret/discussion/5ee1ed8d405586000b69a8c8)
+    - Fixed crash with script_raised_built event. (https://mods.factorio.com/mod/WaterTurret/discussion/5eea82f3d24d01000b6b84fa)
+    - Fixed that water turret recipe wasn't enabled when mod was loaded into an existing game where "Turrets" already have been researched.
+
+  Changes:
+    - Turrets will now only try to find a target if they have ammo. This should improve performance in some situations.
+
+  Locale:
+    - Added Russian localization. Thanks to TheLastEagle for providing the translations! :-)
+
   TODO:
+    - Could we get some options to tweak the turret ourselves according to our mod setup? Something like water pressure/speed, damage inflicted, max range, enemy slow-down factor, etc... (https://mods.factorio.com/mod/WaterTurret/discussion/5e873b911ddcfe000ebdd6eb)

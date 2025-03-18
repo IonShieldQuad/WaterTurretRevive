@@ -17,7 +17,7 @@ data:extend({
         minimum_value = 5,
         maximum_value = 20,
         order = "[WT_b-a]"
-    }
+    },
     --~ {   -- Make spawners immune to steam/water damage?
         --~ type = "bool-setting",
         --~ name = "WT-immunity-spawner",
@@ -32,12 +32,12 @@ data:extend({
         --~ default_value = true,
         --~ order = "[WT_c-b]"
     --~ },
-    --~ {   -- Set radius in which fires are extinguished around a fire dummy
-        --~ type = "double-setting",
-        --~ name = "WT-fire-extinguish-radius",
-        --~ setting_type = "startup",
-        --~ allowed_values = {1, 1.5, 2, 2.5, 3, 3.5, 4},
-        --~ default_value = 2.5,
-        --~ order = "[WT_d-a]"
-    --~ }
+    {   -- Set radius in which fires are extinguished around a fire dummy
+        type = "double-setting",
+        name = "WT-fire-extinguish-radius",
+        setting_type = "startup",
+        allowed_values = {1, 1.5, 2, 2.5, 3, 3.5, 4},
+        default_value = 2.5,
+        order = "[WT_d-a]"
+    }
 })

@@ -70,7 +70,7 @@ local function dummy_marks_fire(dummy)
 
     -- Check argument
     if not (dummy and dummy.valid) then
-    return
+      return
         --~ error("Wrong arguments for function dummy_marks_fire(dummy): Dummy is not valid!\n")
     end
 
@@ -107,6 +107,11 @@ local function find_enemies(turret)
     if not (turret and turret.valid) then msg = "Turret is not valid!\n" end
     if msg then error("Wrong arguments for function find_enemies(turret, targets):\n" .. msg) end
 
+    if not global.WT_turrets[turret.unit_number] then
+        WT.dprint("Turret is not in list!")
+        return
+    end
+
     -- Enemies found in the direction the turret is facing
     local enemies_area = nil
     -- Enemies found within max_range around the turret
@@ -114,9 +119,14 @@ local function find_enemies(turret)
     -- Temporaty list/return value
     local enemies = nil
     -- Other players and their vehicles are less likely to attack than biters/spitters.
-    -- Therefore, we prioritize them (first valid enemy found will be targetted). We also
-    -- look for fire dummies…
-    local attack = { "car", "character", "unit", WT.fire_dummy_name}
+    -- Therefore, we prioritize them (first valid enemy found will be targetted).
+    local attack
+    -- Only water turrets look for fire dummies…
+    if turret.name == WT.water_turret_name then
+        attack = { WT.fire_dummy_name, "car", "character", "unit" }
+    else
+        attack = { "car", "character", "unit" }
+    end
     -- Determine search area in the direction the turret is facing
     local area = global.WT_turrets[turret.unit_number].area or WT.get_turret_area(turret)
 
@@ -160,7 +170,8 @@ local function find_enemies(turret)
                 radius = turret.prototype.turret_range
             }
         -- Special treatment for fire dummies
-        elseif turret.type == WT.turret_type and turret.name == WT.water_turret_name then
+        --~ elseif turret.type == WT.turret_type and turret.name == WT.water_turret_name then
+        else
 --~ WT.show("Attacking fire dummy. Target", targets)
             enemies = turret.surface.find_entities_filtered{
                 type = WT.fire_dummy_type,
@@ -197,16 +208,27 @@ local function find_enemies(turret)
                 WT.show("index", index)
                 WT.show("enemy", enemy)
                 --~ if enemies_radius[index] and is_enemy(turret, enemy) then
+                --~ if enemies_radius[index] then
+                    --~ if enemy.type == WT.fire_dummy_type and enemy.name == WT.fire_dummy_name then
+                        --~ if dummy_marks_fire(enemy) then
+                            --~ enemies[#enemies + 1] = enemy
+                        --~ else
+                            --~ enemy.destroy()
+                        --~ end
+                    --~ else
+                        --~ enemies[#enemies + 1] = enemy
+                    --~ end
+                --~ end
+                -- We actually need only one target, so we can quit after the first match!
                 if enemies_radius[index] then
-                    if enemy.type == WT.fire_dummy_type and enemy.name == WT.fire_dummy_name then
-                        if dummy_marks_fire(enemy) then
-                            enemies[#enemies + 1] = enemy
-                        else
-                            enemy.destroy()
-                        end
-                    else
-                        enemies[#enemies + 1] = enemy
+                    enemies[#enemies + 1] = enemy
+                    if enemy.type == WT.fire_dummy_type and
+                       enemy.name == WT.fire_dummy_name and
+                       not dummy_marks_fire(enemy) then
+
+                        enemy.destroy()
                     end
+                    break
                 end
             end
         end
@@ -214,7 +236,6 @@ WT.show(targets .. " (final list)", enemies)
 WT.show("table_size(" .. targets .. ")", enemies and table_size(enemies))
         -- Return immediately if we've found at least one enemy.
         if table_size(enemies) > 0 then
-        --~ if enemies then
             WT.dprint("Found enemies -- returning immediately!")
             break
         end
@@ -277,8 +298,8 @@ local function find_fire(turret)
 --~ WT.show("fires_radius", fires_radius)
 --~ WT.show("number", table_size(fires_radius))
 
-    -- Compile final list: enemies must be in enemies_area and enemies_radius,
-    -- and they must belong to an enemy force
+    -- Compile final list: fires must be in fires_area and fires_radius,
+    --~ -- and they must belong to an enemy force
     if table_size(fires_area) > 0 and table_size(fires_radius) > 0 then
         for a, a_fire in pairs(fires_area) do
             for r, r_fire in pairs(fires_radius) do
@@ -312,147 +333,205 @@ local function target_enemy_or_fire(turret_id)
     end
 
     local turret = global.WT_turrets[turret_id] and global.WT_turrets[turret_id].entity
+
+    ------------------------------------------------------------------------------------
+    -- Leave early?
+    ------------------------------------------------------------------------------------
+
+    -- Return if turret is not in list (function was called for some other entity for some reason)
+    if not turret then
+        return
     -- Remove invalid turret from list
-    if not turret.valid then
+    elseif not turret.valid then
         WT.dprint(WT.print_name_id(turret) .. " is not valid!")
         global.WT_turrets[id] = nil
-    -- Check targets
-    else
-        WT.dprint("Checking for enemies or fire around " .. WT.print_name_id(turret).. "." )
+        return
+    end
 
-        local tu = turret.prototype.attack_parameters
-        local range = tu.range
-        local min_range = tu.min_range
-        local target = turret.shooting_target
-        --~ local action = false
-        local ammo = turret.fluidbox[1] and turret.fluidbox[1].name
+    -- No need to do anything if turret has no ammo!
+    local ammo = turret.get_fluid_contents()
+    if table_size(ammo) == 0  then
+        WT.dprint("Leaving early: No ammo!")
+        return
+    end
+
+    ------------------------------------------------------------------------------------
+    -- Check if turret is busy already
+    ------------------------------------------------------------------------------------
+    WT.dprint("Checking for enemies or fire around " .. WT.print_name_id(turret).. "." )
+
+    local tu = turret.prototype.attack_parameters
+    local range = tu.range
+    local min_range = tu.min_range
+    local target = turret.shooting_target
+
 WT.show("target", target)
-        -- Turret attacks something.
-        if target then
-            WT.dprint(WT.print_name_id(turret) .. ": shooting at " .. WT.print_name_id(target) .. ".")
+    -- Turret attacks something.
+    if target then
+        WT.dprint(WT.print_name_id(turret) .. ": shooting at " .. WT.print_name_id(target) .. ".")
+        -- Turret attacks worms or spawners -- stop it!
+        if target.type == WT.spawner_type or
+               target.type == WT.worm_type or
+               target.type == WT.artillery_type then
+
+            WT.dprint(WT.print_name_id(turret) .. ": attacks " .. WT.print_name_id(target) .. ".")
+            turret.shooting_target = {nil}
+            --~ WT.dprint("Reset -- calling target_enemy_or_fire(event) again!")
+                -- (Temporarily disabled for 0.18.3)
+                --~ target_enemy_or_fire(turret_id)
+        -- Fire dummy was attacked
+        elseif target.type == WT.fire_dummy_type and target.name == WT.fire_dummy_name then
+WT.show("Turret attacks fire (target)", WT.print_name_id(target))
             -- Steam turret attacks fire dummies -- stop it!
-            if turret.name == WT.steam_turret_name and
-                target.type == WT.fire_dummy_type and
-                target.name == WT.fire_dummy_name then
-
+            if turret.name == WT.steam_turret_name then
                 WT.dprint(WT.print_name_id(turret) .. ": attacks " .. WT.print_name_id(target) .. ".")
                 turret.shooting_target = {nil}
 
-                WT.dprint("Found " .. WT.print_name(turret) ..
-                            "shooting at fire dummies -- leaving target_enemy_or_fire(" ..
-                            tostring(turret_id) .. ") to start over again!")
+                --~ WT.dprint("Found " .. WT.print_name(turret) ..
+                      --~ "shooting at fire dummies -- leaving target_enemy_or_fire(" .. tostring(turret_id) ..
+                      --~ ") to start over again!")
                 -- (Temporarily disabled for 0.18.3)
                 --~ target_enemy_or_fire(turret_id)
-                return
+                --~ return
 
-            -- Turret attacks worms or spawners -- stop it!
-            elseif target.type == WT.spawner_type or
-                    target.type == WT.worm_type or
-                    target.type == WT.artillery_type then
-                WT.dprint(WT.print_name_id(turret) .. ": attacks " .. WT.print_name_id(target) .. ".")
-
-                turret.shooting_target = {nil}
-                WT.dprint("Reset -- calling target_enemy_or_fire(event) again!")
-                -- (Temporarily disabled for 0.18.3)
-                --~ target_enemy_or_fire(turret_id)
-
-            -- Turret attacks fire
-            elseif target.name == WT.fire_dummy_name and target.type == WT.fire_dummy_type then
-WT.show("Turret attacks fire ((target)", WT.print_name_id(target))
-                -- If enemies are around, stop fighting fire!
-                WT.dprint("Fighting fire, looking for enemies …")
-                -- Compile list of enemies for turret
-                local enemies = find_enemies(turret)
-WT.show("enemies", enemies and table_size(enemies))
-                if enemies then
-                    for _, enemy in pairs(enemies) do
-                        -- Set new target to first enemy we can shoot at (unless it's a fire dummy)
-                        if enemy.valid then
-                            -- Switch target if enemy is not a fire dummy
-                            if not (enemy.type == WT.fire_dummy_type or enemy.name == WT.fire_dummy_name) then
-                                WT.dprint("Found enemy: " .. WT.print_name_id(enemy) .. ".")
-                                turret.shooting_target = enemy
-                                return
-                            -- Switch target if current target has no fires around it
-                            elseif not (target and target.valid and dummy_marks_fire(target)) then
-                                WT.dprint("No fires around " .. WT.print_name_id(target) .. ". Targetting new fire: " .. WT.print_name_id(enemy) .. ".")
-                                turret.shooting_target = enemy
+            -- Water turret attacks fire dummy -- remove dummy if it marks no fire!
+            elseif not dummy_marks_fire(target) then
+                WT.dprint("No fires around " .. WT.print_name_id(target) ..
+                          ". Targetting new fire: " .. WT.print_name_id(enemy) .. ".")
+                turret.shooting_target = nil
+                target.destroy()
+            end
                                 -- (Temporarily disabled for 0.18.3)
-                                --~ target_enemy_or_fire(turret.unit_number)
-                            end
-                        end
-                    end
-                end
+                                -- --~ target_enemy_or_fire(turret.unit_number)
+                --~ -- If enemies are around, stop fighting fire!
+                --~ WT.dprint("Fighting fire, looking for enemies …")
+                --~ -- Compile list of enemies for turret
+                --~ local enemies = find_enemies(turret)
+--~ WT.show("enemies", enemies and table_size(enemies))
+                --~ if enemies then
+                    --~ for _, enemy in pairs(enemies) do
+                        --~ -- Set new target to first enemy we can shoot at (unless it's a fire dummy)
+                        --~ if enemy.valid then
+                            --~ -- Switch target if enemy is not a fire dummy
+                            --~ if not (enemy.type == WT.fire_dummy_type or enemy.name == WT.fire_dummy_name) then
+                                --~ WT.dprint("Found enemy: " .. WT.print_name_id(enemy) .. ".")
+                                --~ turret.shooting_target = enemy
+                                --~ return
+                            --~ -- Switch target if current target has no fires around it
+                            --~ elseif not (target and target.valid and dummy_marks_fire(target)) then
+                                --~ WT.dprint("No fires around " .. WT.print_name_id(target) .. ". Targetting new fire: " .. WT.print_name_id(enemy) .. ".")
+                                --~ turret.shooting_target = enemy
+                                --~ -- (Temporarily disabled for 0.18.3)
+                                --~ -- --~ target_enemy_or_fire(turret.unit_number)
+                            --~ end
+                        --~ end
+                    --~ end
+                --~ end
+            --~ -- Water turret attacks something other than fire
+            --~ elseif target.name ~= WT.fire_dummy_name and target.type ~= WT.fire_dummy_type then
+--~ WT.show("Water turret attacks enemy (target)", WT.print_name_id(target))
+                --~ -- If fires are around, stop fighting enemies!
+                --~ WT.dprint("Fighting fire, looking for enemies …")
+                --~ -- Compile list of enemies for turret
+                --~ local fires = find_fires(turret)
+--~ WT.show("enemies", fires and table_size(fires))
+                --~ if fires then
+                    --~ for _, fire in pairs(fires) do
+                        --~ -- Set new target to first fire we can shoot at
+                        --~ if fire.valid then
+                            --~ -- Switch target if we don't attack a fire dummy
+                            --~ if (fire.type == WT.fire_dummy_type or fire.name == WT.fire_dummy_name) then
+                                --~ WT.dprint("Found enemy: " .. WT.print_name_id(enemy) .. ".")
+                                --~ turret.shooting_target = enemy
+                                --~ return
+                            --~ -- Switch target if current target has no fires around it
+                            --~ elseif not (target and target.valid and dummy_marks_fire(target)) then
+                                --~ WT.dprint("No fires around " .. WT.print_name_id(target) .. ". Targetting new fire: " .. WT.print_name_id(enemy) .. ".")
+                                --~ turret.shooting_target = enemy
+                                --~ -- (Temporarily disabled for 0.18.3)
+                                --~ -- --~ target_enemy_or_fire(turret.unit_number)
+                            --~ end
+                        --~ end
+                    --~ end
+                --~ end
 WT.show(tostring(WT.print_name_id(turret) .. ".shooting_target"), turret.shooting_target)
 --~ WT.show("target.name", target and target.name)
 --~ WT.show("target.health", target and target.health)
             -- Turret attacks something else. That's probably OK.
-            else
-                WT.dprint(WT.print_name_id(turret) .. ": attacks " ..
-                            WT.print_name_id(target) .. ".")
-            end
-
-        -- Search for enemies to attack
         else
-            WT.dprint(WT.print_name_id(turret) .. " is idle -- looking for enemies …")
-            -- Compile list of enemies for turret
-            local enemies = find_enemies(turret)
-            if enemies then
-                for _, enemy in pairs(enemies) do
-                    -- Attack first enemy we can shoot at
-                    if enemy.valid then
-                        -- Enemy is a fire dummy
-                        if enemy.type == WT.fire_dummy_type and enemy.name == WT.fire_dummy_name then
-                            -- Only attack if turret is water turret and there's fire around the dummy
-                            if turret.name == WT.water_turret_name and dummy_marks_fire(enemy) then
-                                WT.dprint("Found enemy: " .. WT.print_name_id(enemy) .. ".")
-                                turret.shooting_target = enemy
-                            return
-                            end
-                        -- Enemy is something else -- attack!
-                        else
-                            WT.dprint("Found enemy: " .. WT.print_name_id(enemy) .. ".")
-                            turret.shooting_target = enemy
-                            return
-                        end
-                    end
-                end
-            end
+            WT.dprint(WT.print_name_id(turret) .. ": attacks " ..
+                        WT.print_name_id(target) .. ".")
+        end
+    end
 
-            -- No enemies found!
-            WT.dprint(WT.print_name_id(turret) .. " is loaded with " .. tostring(ammo or "nothing"))
-            -- Can this turret fight fire?
-            if turret.name == WT.water_turret_name then
-                -- Find fires
-                local fires = find_fire(turret)
-WT.show("fires", fires)
-                if fires then
-                    local dummy = {}
-                    for _, fire in pairs(fires) do
-                        -- Create fire dummy
-                        if fire.valid then
-                            dummy = fire.surface.create_entity{
-                                name = WT.fire_dummy_name,
-                                position = fire.position,
-                                force = WT.fire_dummy_force,
-                            }
-                            WT.show("Created fire dummy", WT.print_name_id(dummy))
-                        end
-                    end
-                    -- Reset target of turret and start over again
-                    --~ if dummy then
-                    if table_size(dummy) > 0 then
-                        WT.dprint(WT.print_name_id(turret) ..
-                            " found new fires -- set new target to " .. WT.print_name_id(dummy) .. ".")
-                        turret.shooting_target = dummy
+
+    -- Return if turret has a target
+    if target then
+        WT.dprint("Leaving early: " .. turret.name .. " is already shooting at " .. target.name .. "!")
+        return
+    end
+
+    -- Search for fires to attack if turret is water turret
+    if turret.name == WT.water_turret_name then
+--~ WT.show("global.WT_turrets", global.WT_turrets)
+        local dummy_list = global.WT_turrets[turret.unit_number].fire_dummies or {}
+        -- Prune list
+        for d, dummy in ipairs(dummy_list) do
+            if not dummy_marks_fire(dummy) then
+                dummy.destroy()
+                global.WT_turrets[turret.unit_number].fire_dummies[d] = nil
+                dummy_list[d] = nil
+            end
+        end
+
+        -- Find fires if list is empty
+-- Need to make sure dummy list exists!
+        if table_size(dummy_list) == 0 then
+
+            local fires = find_fire(turret)
+            if table_size(fires) > 0 then
+    WT.show("fires", fires)
+                local dummy = {}
+                local count = 0
+                for _, fire in pairs(fires) do
+    WT.show("Fire", fire)
+                    -- Create fire dummy
+                    if fire.valid then
+    WT.show(fire.name .. " (id)", fire.unit_number)
+                        dummy = fire.surface.create_entity{
+                            name = WT.fire_dummy_name,
+                            position = fire.position,
+                            force = WT.fire_dummy_force,
+                        }
+                        WT.show("Created fire dummy", WT.print_name_id(dummy))
+                        -- Store dummy
+                        count = count + 1
+                        global.WT_turrets[turret.unit_number].fire_dummies[count] = dummy
                     end
                 end
             end
         end
     end
 
+    WT.dprint(WT.print_name_id(turret) .. " is idle -- looking for enemies …")
+    -- Compile list of enemies for turret
+    local enemies = find_enemies(turret)
+    if enemies then
+        for _, enemy in pairs(enemies) do
+            -- Attack first enemy we can shoot at
+            if enemy.valid then
+                turret.shooting_target = enemy
+                break
+            end
+        end
+
+    -- No enemies found!
+    else
+        WT.dprint(WT.print_name_id(turret) .. " is loaded with " .. tostring(ammo or "nothing"))
+    end
+
     WT.dprint("End of function target_enemy_or_fire(" ..
-                WT.print_name_id(global.WT_turrets[turret_id].entity) .. ") on tick " .. game.tick .. ".")
+            WT.print_name_id(global.WT_turrets[turret_id].entity) .. ") on tick " .. game.tick .. ".")
 end
 
 
@@ -480,18 +559,18 @@ end
 ------------------------------------------------------------------------------------
 -- Act on turrets
 local function on_tick(event)
---~ WT.show("On tick, global.WT_turrets", global.WT_turrets)
-
+WT.show("global.WT_turrets", global.WT_turrets)
     for id, turret in pairs(global.WT_turrets) do
 WT.dprint("on_tick: " .. WT.print_name_id(turret.entity))
+WT.show("Turret data: ", turret)
+WT.show("event tick: ", event.tick)
         -- Remove invalid turrets from list
         if not (turret.entity and turret.entity.valid) then
             global.WT_turrets[id] = nil
             WT.dprint("Removed turret " .. tostring(id) .. " from list because it was not valid.")
         -- Don't act before the tick stored with turret
         elseif turret.tick <= event.tick then
-        --~ else
-            -- Make sure turret type matches fluid input/contents
+WT.dprint("May act on turret")
             local turret_id = WT.swap_turrets(id)
 WT.show("Returned from swap_turrets, got turret_id", turret_id)
             if turret_id and global.WT_turrets[turret_id].entity.valid then
@@ -508,15 +587,17 @@ WT.show("Returned from swap_turrets, got turret_id", turret_id)
 
                 -- Set next action tick
                 global.WT_turrets[turret_id].tick = event.tick + WT.action_delay
+                -- Find a target
+                target_enemy_or_fire(turret_id)
 
-                --~ -- Check targets
-                -- (Temporarily disabled for 0.18.3)
-                --~ target_enemy_or_fire(turret_id)
             -- This should never be reached!
             else
                 error("Something went wrong! Turret with id ".. tostring(turret_id) ..
                       "doesn't exist!\n" .. serpent.block(global.WT_turrets))
             end
+        else
+WT.dprint("Nothing to do!")
+WT.show(global.WT_turrets)
         end
     end
 end
@@ -601,7 +682,7 @@ end
 local function on_built(event)
     WT.dprint("Entered function on_built(" .. WT.print_name(event.created_entity) .. ").")
 
-    local entity = event.created_entity
+    local entity = event.created_entity or event.entity
 
     -- Filtering events still doesn't work, so this function could also be entered when
     -- something other than our turrets were built. So, just filter once here as well!
@@ -649,7 +730,7 @@ local function script_raised_built(event)
             --~ ["entity"] = entity,
             --~ ["tick"] = event.tick
         --~ }
-        on_built( {["created_entity"] = entity} )
+        on_built(event)
     end
 
     WT.dprint("End of function script_raised_built(" .. WT.print_name(entity) .. ").")
@@ -733,27 +814,27 @@ end
 -- Init
 local function init()
     WT.dprint("Entered function init().")
+    log("Entered function init().")
 
+    ------------------------------------------------------------------------------------
+    -- Enable debugging if necessary
+    WT.debug_in_log = game.active_mods["_debug"] and true or false
+
+    ------------------------------------------------------------------------------------
+    -- Initialize global tables
     global = global or {}
     global.WT_turrets = global.WT_turrets or {}
 WT.dprint("global.WT_turrets: " .. serpent.block(global.WT_turrets))
 
     ------------------------------------------------------------------------------------
-    -- Debugging
-    -- Check whether debugging should be enabled after the game has resumed
-    -- (game.active_mods isn't available yet when on_load is run.)
-    if game and game.active_mods["_debug"] then
-        -- Redefine function to also print to game
-        WT.dprint = function(msg)
-            log({"", msg})
-            game.print({"", msg})
-        end
-    else
-    -- Redefine function to do nothing
-        WT.dprint = function(msg) end
+    -- Make sure our recipe is enabled if it should be
+    for f, force in pairs(game.forces) do
+        if force.technologies.turrets.researched then
+           force.technologies.turrets.researched = false
+           force.technologies.turrets.researched = true
+           WT.dprint("Reset technology \"turrets\" for force " .. tostring(f))
+       end
     end
-    log("Debugging is " .. tostring(WT.debug_in_log and "on" or "off"))
-
 
     ------------------------------------------------------------------------------------
     -- Forces
@@ -800,8 +881,19 @@ end
 ------------------------------------------------------------------------------------
 -- on_load
 local function on_load()
-    WT.dprint("Entered function on_load().")
+    log("Entered function on_load().")
 
+    -- Turn debugging on or off
+--    script.on_nth_tick(1, function()
+--        WT.debug_in_log = (game and game.active_mods["_debug"]) and true or false
+--        WT.dprint("Debugging is " .. tostring(WT.debug_in_log and "on" or "off"))
+
+--        script.on_nth_tick(1, nil)
+--    end)
+
+    WT.debug_in_log = script.active_mods["_debug"] and true or false
+
+log("Debug in log: " .. tostring(WT.debug_in_log))
     -- Compatibility with "Picker Dollies" -- add event handler
     if remote.interfaces["PickerDollies"] and
        remote.interfaces["PickerDollies"]["dolly_moved_entity_id"] then
@@ -810,7 +902,7 @@ local function on_load()
         WT.dprint("Registered handler for \"dolly_moved_entity_id\" from \"PickerDollies\".")
     end
 
-    WT.dprint("End of function on_load().")
+    log("End of function on_load().")
 end
 
 ------------------------------------------------------------------------------------
@@ -818,25 +910,30 @@ end
 
 local function on_entity_damaged(event)
     WT.dprint("Entered function on_entity_damaged(" .. WT.print_name_id(event.entity) .. ").")
-WT.show("event.cause.name", event.cause and event.cause.name)
+--~ WT.show("event.cause.name", event.cause and event.cause.name)
 WT.show("event.entity.name", event.entity and event.entity.name)
 WT.show("event.entity.unit_number", event.entity and event.entity.unit_number)
 WT.show("event.entity.health", event.entity and event.entity.health)
 WT.show("event.entity.prototype.max_health", event.entity and event.entity.prototype.max_health)
 WT.show("event.damage_type.name", event.damage_type and event.damage_type.name)
 WT.show("event.final_damage_amount", event.final_damage_amount)
+WT.show("event.final_health", event.final_health)
 WT.show("event.force", event.force)
+--~ WT.show("event", event)
 
-WT.show("Correct damage type", not (event.damage_type == WT.steam_damage_name or event.damage_type == WT.water_damage_name))
+WT.show("Correct damage type", (event.damage_type.name == WT.steam_damage_name or event.damage_type.name == WT.water_damage_name))
 
+    ------------------------------------------------------------------------------------
     -- Only act on our turrets' damage
     -- (Needed for Factorio 0.17 only because it doesn't support event filtering by damage_type yet!)
     -- (Better add this for 0.18 as well because event filtering doesn'work reliably yet.)
-    if not (event.damage_type == WT.steam_damage_name or event.damage_type == WT.water_damage_name) then
+    if not ((event.damage_type.name == WT.steam_damage_name) or
+            (event.damage_type.name == WT.water_damage_name)) then
         WT.dprint("Wrong damage type -- nothing to do!")
         return
     end
 
+    ------------------------------------------------------------------------------------
     -- Fire dummy was attacked -- remove it immediately if there are no fires around it!
     local entity = event.entity
     local turret = event.cause
@@ -856,6 +953,7 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
         return
     end
 
+    ------------------------------------------------------------------------------------
     -- Return if we didn't do the damage
     if not turret or (turret.name ~= WT.steam_turret_name and turret.name ~= WT.water_turret_name) then
         WT.dprint("Leaving function on_entity_damaged(" .. WT.print_name(event.entity) ..
@@ -863,10 +961,23 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
         return
     end
 
+    ------------------------------------------------------------------------------------
+    -- Return if wrong entity was attacked
+    if turret and
+       -- Water turret damaged something else than fire dummy
+       (turret.name == WT.water_turret_name and entity.name ~= WT.fire_dummy_name) or
+       -- Steam turret damaged fire dummy
+       (turret.name == WT.steam_turret_name and entity.name == WT.fire_dummy_name) then
+
+        turret.shooting_target = {nil}
+        return
+    end
+
     local ammo = turret.fluidbox[1]
     local damage = event.final_damage_amount
     local damage_type = event.damage_type
 
+    ------------------------------------------------------------------------------------
     -- Restore health to entity if it belongs to us and has health _property_ (not necessarily health)
     if turret.force == entity.force and entity.health ~= nil then
         entity.health = entity.health + damage
@@ -874,6 +985,7 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
         return
     end
 
+    ------------------------------------------------------------------------------------
     -- We damaged a spawner or a worm/turret -- stop it!
     if entity.type == WT.spawner_type or
             entity.type == WT.worm_type or
@@ -883,20 +995,32 @@ WT.show("dummy_marks_fire(" .. WT.print_name_id(entity) .. ")", dummy_marks_fire
         WT.dprint("Leaving function on_entity_damaged(" .. WT.print_name_id(entity) .. ") early -- resetting target for " .. WT.print_name_id(turret) .. ".")
         -- (Temporarily disabled for 0.18.3)
         --~ target_enemy_or_fire(turret.unit_number)
+        return
     end
 
+    ------------------------------------------------------------------------------------
     -- We damaged something that doesn't belong to us!
     -- Modify steam damage according to its temperature (base temperature is 165 °C)
-    if ammo and ammo.name == "steam" then
+    -- Applying increased damage only makes sense if hot steam was used and
+    -- if the damaged entity survived
+    if  ammo and ammo.name == "steam" and ammo.temperature ~= 165 and entity.health > 0 then
+WT.show("ammo.temperature: ", ammo.temperature)
+WT.show("ammo.temperature / 165: ", ammo.temperature / 165)
+WT.dprint("Adjusting damage and entity health")
+        -- Temporarily restore health because base damage has already been applied
+        entity.health = entity.health + damage
+        -- Calculate increased damage
         damage = damage * ammo.temperature / 165
+        -- Subtract increased damage from health
+        entity.health = entity.health - damage
     end
-
+WT.show("Entity health: ", entity.health)
     WT.dprint("End of function on_entity_damaged(" .. WT.print_name_id(event.entity) .. ").")
 end
 
 
 ------------------------------------------------------------------------------------
---                              Registering handlers                              --
+--                           Registering event handlers                           --
 ------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------
@@ -1012,6 +1136,7 @@ script.on_event(defines.events.on_tick, on_tick)
 ------------------------------------------------------------------------------------
 -- Remove fire dummies with no fires around them every 30 minutes
 script.on_nth_tick(30*60*60, remove_fire_dummies)
+
 
 ------------------------------------------------------------------------------------
 --                    FIND LOCAL VARIABLES THAT ARE USED GLOBALLY                 --
