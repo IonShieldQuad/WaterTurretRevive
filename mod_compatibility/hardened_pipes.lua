@@ -102,6 +102,7 @@ if mods["hardened_pipes"] and WT.hardened_pipes then
         .layers[1]
 
     layer.filename = MOD_PIX .. "hr-turret-base-pipes-" .. direction .. ".png"
+    WT.pin_raw_sheet(layer, "hr-turret-base-pipes-" .. direction .. ".png")
 
     --[[
     if string.find(direction, "^w") then

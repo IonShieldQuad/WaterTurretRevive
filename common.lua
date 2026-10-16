@@ -1146,6 +1146,36 @@ common.show("fire_data", fire_data)
   --~ end
 
   ------------------------------------------------------------------------------------
+  -- Recoloured sheets and their geometry
+  --
+  -- The turret graphics are base's flamethrower-turret sprites with only the filename and tint
+  -- swapped, so the rectangle comes along from base's prototype. That is only valid while the
+  -- sheet is the size base's sprite is. 2.1 resized base's south sprites (128x166 -> 168x190)
+  -- while these recoloured sheets are still authored at the old size, which made the atlas build
+  -- refuse the sprite ("sprite rectangle ... is outside the actual sprite size") and blocked
+  -- startup. Pin the sheets that differ so the swap can't inherit a stale rectangle.
+  ------------------------------------------------------------------------------------
+
+  common.raw_sheet_geometry = {
+    ["hr-turret-base-south-raw.png"] = { width = 128, height = 166, shift_px = { 0, -8 } },
+    ["hr-turret-base-pipes-south.png"] = { width = 128, height = 166, shift_px = { 0, -8 } },
+  }
+
+  -- Give a re-pointed layer the geometry of the sheet it now uses. Sheets without an entry keep
+  -- whatever they inherited (correct for every direction whose sheet matches base's size).
+  function common.pin_raw_sheet(layer, image)
+    local geometry = common.raw_sheet_geometry[image]
+    if not geometry then return layer end
+    layer.width = geometry.width
+    layer.height = geometry.height
+    if geometry.shift_px then
+      local shift = geometry.shift_px
+      layer.shift = { shift[1] / 32, shift[2] / 32 }   -- util.by_pixel without needing util
+    end
+    return layer
+  end
+
+  ------------------------------------------------------------------------------------
   --                                       EOF                                      --
   ------------------------------------------------------------------------------------
   return common

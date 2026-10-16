@@ -710,6 +710,7 @@ local function color_layer(layers, image, tint, dir)
   new_layer.filename = MOD_PIX .. image
   new_layer.tint = tint
   new_layer.apply_runtime_tint = false
+  WT.pin_raw_sheet(new_layer, image)
 --[[
   if string.find(dir, "^w") then
     new_layer.width = 208
