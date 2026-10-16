@@ -29,8 +29,7 @@
     "factorio.versions": [
         {
             "name": "Main",
-            "factorioPath": "e:\\SteamLibrary\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe",
-            "active": true
+            "factorioPath": "e:\\SteamLibrary\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe"
         }
     ],
     "Lua.workspace.userThirdParty": [
