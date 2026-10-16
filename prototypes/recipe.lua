@@ -127,7 +127,7 @@ extinguisherrecipe.icons = {
   {icon = MOD_PIX .."turret-icon.png"},
   {icon = MOD_PIX .. "turret-icon-raw.png", tint = WT.extinguisher_turret_tint}
 }
-extinguisherrecipe.category = "crafting-with-fluid"
+extinguisherrecipe.categories = { "crafting-with-fluid" }
 
 recipe_data = {
   ["name"] = WT.extinguisher_turret_name,
@@ -187,7 +187,7 @@ recipe = {
   name = WT.fire_ex_fluid .. "-oil",
   --~ localised_description = {"recipe-description.WT-fire_ex_fluid"},
   icons = make_recipe_icon("oil"),
-  category = "chemistry",
+  categories = { "chemistry" },
   subgroup = "fluid",
   ingredients = {},
   results = {},

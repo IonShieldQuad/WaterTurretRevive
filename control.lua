@@ -1059,7 +1059,9 @@ WT.dprint("Mod setting must have changed")
 WT.show("target", WT.print_name_id(target))
 WT.show("WT.enemies(target.type)", WT.enemies(target.type))
 WT.dprint("Current target of %s: %s", { WT.print_name_id(turret.entity), WT.print_name_id(target) })
-          turret.entity.shooting_target = {}
+          -- 2.x: shooting_target must be a LuaEntity or nil -- assigning {} raises
+          -- "Expected LuaEntity but non-object was provided" (reported crash on loading a save)
+          turret.entity.shooting_target = nil
 
 WT.dprint("New target of %s: %s", {
   WT.print_name_id(turret.entity),
