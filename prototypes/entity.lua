@@ -3,6 +3,10 @@ local WT = require('__WaterTurret-revived__/common')("WaterTurret-revived")
 local MOD_PIX = WT.mod_root .. "graphics/"
 local ICONS = MOD_PIX .. "icons/"
 local BASE_PIX = "__base__/graphics/entity/flamethrower-turret/"
+-- Canonical paths only: the AtlasBuilder rejects any path containing '..'
+-- ("relative paths are not supported"), so the water stream shadow is addressed
+-- directly at the base folder it actually lives in (same sprite fire.lua uses).
+local BASE_ACID_PIX = "__base__/graphics/entity/acid-projectile/"
 
 --~ local WT.water_turret_tint = { r = 0.25, g = 0.677, b = 0.75, a = 1 }
 --~ local WT.extinguisher_turret_tint = { r = 0.981, g = 0.059, b = 0.059, a = 1}
@@ -492,7 +496,7 @@ waterstream.spine_animation = {
   shift = { 0, 0 }
 }
 waterstream.shadow = {
-  filename = BASE_PIX .. "../acid-projectile/projectile-shadow.png",
+  filename = BASE_ACID_PIX .. "projectile-shadow.png",
   line_length = 5,
   width = 28,
   height = 16,
