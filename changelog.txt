@@ -1,4 +1,21 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.14
+Date: 2026-11-01
+  Bugfixes:
+    - Fixed a crash the first time one of the mod's turrets was serviced: 2.0 replaced
+      LuaEntity::neighbours with fluidbox_neighbours, and the old read raised an error instead
+      of returning nil.
+    - Water turrets convert to steam turrets again when their pipes carry steam, and steam
+      turrets convert back to water turrets (the swap was dead since the 2.0 port).
+    - Fixed a crash whenever a water or steam turret damaged something: 2.0 removed
+      LuaEntity::fluidbox, the read is now get_fluid(index).
+    - Fixed a crash after a successful turret swap on the same removed field.
+    - The steam turret's damage bonus for steam hotter than 165 degrees works again, since
+      get_fluid() still reports the fluid's temperature.
+    - Fixed the water stream shadow path that contained '..', which stopped the whole mod from
+      loading (AtlasBuilder rejects relative paths).
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 Version: 2.0.13
 Date: 2026-10-21
   Changes:

@@ -75,7 +75,11 @@ local errmsg
   local msg
   input = nil
   output = nil
-  local neighbours = turret.neighbours and turret.neighbours[1] or nil
+  -- 2.0 renamed LuaEntity::neighbours to fluidbox_neighbours (array[array[LuaEntity]],
+  -- outer index = fluid box index). On 2.1 the 1.1 field raises "LuaEntity doesn't contain
+  -- key neighbours", which crashed the game every time a turret was serviced.
+  local nb = turret.fluidbox_neighbours
+  local neighbours = nb and nb[1] or nil
   local t_fluid = turret.get_fluid_contents()
 
   -- Set neighbours to nil if it's an empty table -- otherwise tests won't work!
@@ -328,7 +332,7 @@ WT.dprint("storage.WT_turrets[%g].entity: %s",
   turret = storage.WT_turrets[t.unit_number].entity
 
   --~ end
-  WT.dprint("Contents of %s: %s", { WT.print_name_id(turret), turret.fluidbox } )
+  WT.dprint("Contents of %s: %s", { WT.print_name_id(turret), turret.get_fluid_contents() } )
   WT.dprint("End of function swap_turrets(%s).", { id })
 
   --~ if swap_turrets.profiler then

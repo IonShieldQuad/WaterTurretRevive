@@ -949,7 +949,9 @@ WT.show("event", event)
     return
   end
 
-  local ammo = turret.fluidbox[1]
+  -- 2.0 removed LuaEntity::fluidbox; get_fluid(index) is the read that still carries
+  -- the fluid's temperature (the commented-out steam scaling below needs it).
+  local ammo = turret.get_fluid(1)
   local damage = event.final_damage_amount
   local damage_type = event.damage_type
 
@@ -999,7 +1001,7 @@ WT.show("event", event)
     --~ entity.health = entity.health - storage.enemy_healing[entity.type][entity.name]
     --~ end
     if turret.name == WT.steam_turret_name then
-      local ammo = turret.fluidbox[1]
+      local ammo = turret.get_fluid(1)
 
       if ammo and ammo.temperature ~= 165 then
 WT.dprint("Adjusting damage and entity health for steam temperature %g (factor %s).", {
