@@ -830,7 +830,11 @@ common.dprint("Target position is not in range!")
     -- Change attributes of dummy
     local dummy_id = dummy.unit_number
 
-    dummy.active = false
+    -- 2.1 made LuaEntity::active read-only: the old "dummy.active = false" here
+    -- threw "LuaEntity::active is read only" on every on_trigger_created_entity
+    -- (ID 30). The dummy is inert by construction (speed 0, range 0, no
+    -- action_delivery) and must stay damageable -- our turrets kill it to
+    -- trigger extinguish_fire() -- so nothing has to be deactivated here.
     -- Removed animation: We place a real fire now as created_effect of
     -- the fire-dummy prototype!
     --~ if dummy.name == common.fire_dummy_name then

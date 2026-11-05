@@ -92,7 +92,7 @@ log("Removed " .. tostring(cnt or 0) .. " dummies.")
       raise_built = false,
     })
     if dummy and dummy.valid then
-      dummy.active = false
+      -- dummy.active = false (read-only since 2.1; this block is dead code)
 log("dummy position: " .. serpent.block(dummy.position))
       make_new_lists({
         dummy_entity = dummy,
