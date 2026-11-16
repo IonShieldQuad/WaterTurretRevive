@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.15
+Date: 2026-11-17
+  Bugfixes:
+    - Fire and acid dummies register again. Writing LuaEntity::active raised "LuaEntity::active
+      is read only" the first time any fire spawned its marker dummy, so everything after that
+      line (force, fire lookup, registration) never ran and fires could not be extinguished. The
+      write is gone: the dummy is inert by construction and has to stay damageable.
+  Changes:
+    - created_effect on fire prototypes is appended to instead of overwritten, so fire mods that
+      hang their own triggers there keep them (reported by Grom, author of Volatile Fuels & Fires).
+---------------------------------------------------------------------------------------------------
 Version: 2.0.14
 Date: 2026-11-01
   Bugfixes:
