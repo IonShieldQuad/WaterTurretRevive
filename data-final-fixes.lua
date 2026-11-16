@@ -292,7 +292,11 @@ for name, entity in pairs(fires) do
   if not ignore[entity.name] and name ~= WT.fake_fire_name then
     WT.show("Adding created_effect to", entity.name)
 
-    entity.created_effect = {
+    -- 2.1: created_effect is shared real estate. Other fire mods (Volatile
+    -- Fuels & Fires) hang their own trigger here, so a plain assignment wipes
+    -- theirs. Merge instead: created_effect is either a single TriggerItem
+    -- (it has a .type) or an array of them.
+    local wt_effect = {
       type = "direct",
       action_delivery = {
         type = "instant",
@@ -306,6 +310,14 @@ for name, entity in pairs(fires) do
         }
       },
     }
+
+    if not entity.created_effect then
+      entity.created_effect = wt_effect
+    elseif entity.created_effect.type then
+      entity.created_effect = { entity.created_effect, wt_effect }
+    else
+      table.insert(entity.created_effect, wt_effect)
+    end
   else
     WT.show("Ignore", entity.name)
   end
